@@ -9,6 +9,13 @@ import { Queue } from 'bullmq';
 import { processPhotoshootJob } from './jobProcessor';
 import { updateUserCredits } from './firestoreRest';
 
+let app: any;
+
+if (process.env.WORKER_MODE === 'true') {
+  console.log('Starting in WORKER mode...');
+  import('./worker.ts');
+} else {
+
 const hasRedis = !!process.env.REDIS_URL;
 let imageQueue: any;
 
@@ -86,7 +93,7 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || "mock_secret",
 });
 
-const app = express();
+app = express();
 
 async function setupApp() {
   app.use(cors());
@@ -381,5 +388,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+}
 
 export default app;
