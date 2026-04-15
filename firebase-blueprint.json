@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Photoshoot": {
+      "title": "Photoshoot",
+      "description": "A generated photoshoot session",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who generated the photoshoot"
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "When the photoshoot was generated"
+        },
+        "config": {
+          "type": "object",
+          "description": "The configuration used for generation"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Array of base64 encoded images or URLs"
+        }
+      },
+      "required": ["userId", "createdAt", "config", "results"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user profile",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "photoURL": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "timestamp"
+        }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles"
+    },
+    "/photoshoots/{photoshootId}": {
+      "schema": {
+        "$ref": "#/entities/Photoshoot"
+      },
+      "description": "Generated photoshoots"
+    }
+  }
+}

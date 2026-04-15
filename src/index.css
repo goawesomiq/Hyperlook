@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-serif: "Playfair Display", serif;
+  
+  --color-brand-50: #fdf2f8;
+  --color-brand-100: #fce7f3;
+  --color-brand-200: #fbcfe8;
+  --color-brand-300: #f9a8d4;
+  --color-brand-400: #f472b6;
+  --color-brand-500: #ec4899;
+  --color-brand-600: #db2777;
+  --color-brand-700: #be185d;
+  --color-brand-800: #9d174d;
+  --color-brand-900: #831843;
+
+  --color-accent-50: #f5f3ff;
+  --color-accent-100: #ede9fe;
+  --color-accent-200: #ddd6fe;
+  --color-accent-300: #c4b5fd;
+  --color-accent-400: #a78bfa;
+  --color-accent-500: #8b5cf6;
+  --color-accent-600: #7c3aed;
+}
+
+@layer base {
+  body {
+    @apply bg-[#faf9f6] dark:bg-slate-900 text-slate-900 dark:text-white font-sans antialiased transition-colors duration-300;
+  }
+  
+  html:not(.dark) body {
+    background-image: radial-gradient(#fbcfe8 0.5px, transparent 0.5px), radial-gradient(#fbcfe8 0.5px, #faf9f6 0.5px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+  }
+
+  .dark body {
+    background-image: radial-gradient(#334155 0.5px, transparent 0.5px), radial-gradient(#334155 0.5px, #0f172a 0.5px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+.glass-panel {
+  @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/40 dark:border-slate-700/40 shadow-[0_8px_32px_0_rgba(236,72,153,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)];
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-600 to-accent-600 dark:from-brand-400 dark:to-accent-400;
+}
+
+.cute-card {
+  @apply bg-white dark:bg-slate-800 rounded-[2rem] border border-brand-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all duration-300;
+}
+
+.nav-blur {
+  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-brand-50 dark:border-slate-800;
+}
+
+.mobile-nav {
+  @apply fixed bottom-0 left-0 right-0 h-24 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 flex items-center justify-around px-6 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)];
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.section-spacing {
+  @apply py-12 md:py-20;
+}
+

@@ -1,0 +1,24 @@
+{
+  "name": "Hyperlook Ai",
+  "short_name": "Hyperlook",
+  "description": "Multi-product AI photoshoot studio. Transform raw product images into hyper-realistic, high-fidelity photoshoots.",
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#db2777",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/192/3659/3659898.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3659/3659898.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
