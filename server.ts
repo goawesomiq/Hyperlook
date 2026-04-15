@@ -5,25 +5,9 @@ import path from "path";
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import fs from "fs";
-import admin from 'firebase-admin';
 import { Queue } from 'bullmq';
 import { processPhotoshootJob } from './jobProcessor';
-
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      })
-    });
-  } catch (e) {
-    console.warn("Failed to initialize Firebase Admin SDK:", e);
-  }
-}
-
-const db = admin.apps.length ? admin.firestore() : null;
+import { updateUserCredits } from './firestoreRest';
 
 const hasRedis = !!process.env.REDIS_URL;
 let imageQueue: any;
@@ -69,7 +53,7 @@ if (hasRedis) {
       setTimeout(async () => {
         job.state = 'active';
         try {
-          const result = await processPhotoshootJob(job, db);
+          const result = await processPhotoshootJob(job);
           job.returnvalue = result;
           job.state = 'completed';
         } catch (err: any) {
@@ -158,11 +142,11 @@ async function setupApp() {
       }
 
       if (isValid) {
-        if (db && userId) {
+        const projectId = process.env.FIREBASE_PROJECT_ID;
+        const apiKey = process.env.FIREBASE_API_KEY;
+        if (projectId && apiKey && userId) {
           try {
-            await db.collection('users').doc(userId).update({
-              credits: admin.firestore.FieldValue.increment(creditsToAdd)
-            });
+            await updateUserCredits(projectId, userId, creditsToAdd, apiKey);
           } catch (e) {
             console.error("Failed to update credits in Firestore", e);
           }

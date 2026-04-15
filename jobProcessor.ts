@@ -1,16 +1,17 @@
-import admin from 'firebase-admin';
+import { getUserCredits, updateUserCredits } from './firestoreRest';
 
-export async function processPhotoshootJob(job: any, db: admin.firestore.Firestore | null) {
+export async function processPhotoshootJob(job: any) {
   const { userId, userEmail, config, mainImageBase64, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = job.data;
   
   const ADMIN_EMAIL = "goawesomiq@gmail.com";
   let isAdmin = userEmail === ADMIN_EMAIL;
   const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
 
-  if (!isAdmin && db && userId) {
-    const userRef = db.collection('users').doc(userId);
-    const userDoc = await userRef.get();
-    const credits = userDoc.data()?.credits || 0;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const firebaseApiKey = process.env.FIREBASE_API_KEY;
+
+  if (!isAdmin && projectId && firebaseApiKey && userId) {
+    const credits = await getUserCredits(projectId, userId, firebaseApiKey);
     if (credits < cost) {
       throw new Error(`Insufficient credits. This generation requires ${cost} coins. Please purchase more.`);
     }
@@ -81,10 +82,8 @@ export async function processPhotoshootJob(job: any, db: admin.firestore.Firesto
     throw new Error("No image generated");
   }
 
-  if (!isAdmin && db && userId) {
-    await db.collection('users').doc(userId).update({
-      credits: admin.firestore.FieldValue.increment(-cost)
-    });
+  if (!isAdmin && projectId && firebaseApiKey && userId) {
+    await updateUserCredits(projectId, userId, -cost, firebaseApiKey);
   }
 
   if (job.updateProgress) await job.updateProgress(100);
