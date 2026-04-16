@@ -10,6 +10,7 @@
     "dev": "tsx server.ts",
     "build": "vite build",
     "start": "tsx server.ts",
+    "balanced-energy": "tsx server.ts",
     "worker": "tsx worker.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
