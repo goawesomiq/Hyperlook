@@ -1,6 +1,46 @@
 import { getUserCredits, updateUserCredits } from './firestoreRest';
 
+async function fetchWithRetryAndTimeout(url: string, options: RequestInit, timeoutMs: number) {
+  const delays = [5000, 10000, 15000];
+  for (let attempt = 0; attempt <= 3; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (response.status === 503) {
+        if (attempt < 3) {
+          console.log(`GENERATE: Received 503. Retrying in ${delays[attempt]}ms...`);
+          await new Promise(res => setTimeout(res, delays[attempt]));
+          continue;
+        } else {
+          throw new Error('AI servers are busy. Please try again in 2 minutes.');
+        }
+      }
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+      }
+      
+      return response;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timed out after ${timeoutMs}ms`);
+      }
+      if (attempt === 3) throw error;
+      // Re-throw if it's not a 503 (handled above) and not an abort, unless we want to retry network errors too.
+      // The prompt specifically asked to retry on 503, so we only retry 503s.
+      throw error;
+    }
+  }
+  throw new Error('AI servers are busy. Please try again in 2 minutes.');
+}
+
 export async function processPhotoshootJob(job: any) {
+  console.log('GENERATE: Job received');
   const { userId, userEmail, config, mainImageBase64, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = job.data;
   
   const ADMIN_EMAIL = "goawesomiq@gmail.com";
@@ -53,18 +93,18 @@ export async function processPhotoshootJob(job: any) {
 
   if (job.updateProgress) await job.updateProgress(10);
 
-  const fetchResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
+  console.log('GENERATE: Calling Gemini API');
+  console.log('GENERATE: Waiting for response...');
+
+  const fetchResponse = await fetchWithRetryAndTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify(requestBody)
-  });
+  }, 180000); // 180 seconds timeout
 
-  if (!fetchResponse.ok) {
-    const errorText = await fetchResponse.text();
-    throw new Error(`Gemini API Error: ${fetchResponse.status} - ${errorText}`);
-  }
+  console.log('GENERATE: Response received!');
 
   if (job.updateProgress) await job.updateProgress(80);
 
@@ -81,12 +121,15 @@ export async function processPhotoshootJob(job: any) {
   if (!image_base64) {
     throw new Error("No image generated");
   }
+  console.log('GENERATE: Image saved');
 
   if (!isAdmin && projectId && firebaseApiKey && userId) {
     await updateUserCredits(projectId, userId, -cost, firebaseApiKey);
   }
 
   if (job.updateProgress) await job.updateProgress(100);
+  console.log('GENERATE: Progress updated');
+  console.log('GENERATE: Job completed!');
 
   return { image_base64 };
 }

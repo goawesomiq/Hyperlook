@@ -9,6 +9,43 @@ import { Queue } from 'bullmq';
 import { processPhotoshootJob } from './jobProcessor';
 import { updateUserCredits } from './firestoreRest';
 
+async function fetchWithRetryAndTimeout(url: string, options: RequestInit, timeoutMs: number) {
+  const delays = [5000, 10000, 15000];
+  for (let attempt = 0; attempt <= 3; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (response.status === 503) {
+        if (attempt < 3) {
+          console.log(`ANALYZE: Received 503. Retrying in ${delays[attempt]}ms...`);
+          await new Promise(res => setTimeout(res, delays[attempt]));
+          continue;
+        } else {
+          throw new Error('AI servers are busy. Please try again in 2 minutes.');
+        }
+      }
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+      }
+      
+      return response;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timed out after ${timeoutMs}ms`);
+      }
+      if (attempt === 3) throw error;
+      throw error;
+    }
+  }
+  throw new Error('AI servers are busy. Please try again in 2 minutes.');
+}
+
 let app: any;
 
 if (process.env.WORKER_MODE === 'true') {
@@ -269,19 +306,13 @@ Return the result in JSON format.`;
         }
       };
 
-      const fetchResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${apiKey}`, {
+      const fetchResponse = await fetchWithRetryAndTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify(requestBody)
-      });
-
-      if (!fetchResponse.ok) {
-        const errorText = await fetchResponse.text();
-        console.error("Gemini REST API Error:", errorText);
-        throw new Error(`Gemini API Error: ${fetchResponse.status} - ${errorText}`);
-      }
+      }, 60000); // 60 seconds timeout
 
       const responseData = await fetchResponse.json();
       const textResult = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
