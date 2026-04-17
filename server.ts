@@ -11,6 +11,9 @@ import { getUserCredits, updateUserCredits } from './firestoreRest';
 const WORKER_MODE = process.env.WORKER_MODE === 'true';
 const PORT = process.env.PORT || 3000;
 
+const WORKER_URL = process.env.WORKER_URL || process.env.RAILWAY_PRIVATE_DOMAIN;
+console.log('Worker URL configured as:', WORKER_URL);
+
 // ============ HELPER FUNCTIONS ============
 
 async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: number, maxRetries = 3) {
@@ -378,7 +381,28 @@ if (WORKER_MODE) {
 
     app.post("/api/analyze", async (req, res) => {
       try {
-        const { base64Image } = req.body;
+        const { base64Image, model, prompt, image } = req.body;
+        
+        // Route image generation to worker
+        if (model?.includes('image-preview') && WORKER_URL) {
+          console.log('🔄 Forwarding image generation to worker:', WORKER_URL);
+          
+          try {
+            const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
+            const workerResponse = await fetch(`${formattedUrl}/api/generate`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image, prompt, model }),
+            });
+            
+            const result = await workerResponse.json();
+            console.log('✅ Worker response received');
+            return res.json(result);
+          } catch (error: any) {
+            console.error('❌ Worker call failed:', error.message);
+            return res.status(500).json({ error: 'Worker unavailable' });
+          }
+        }
         
         let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
 
