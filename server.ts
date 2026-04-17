@@ -383,8 +383,14 @@ if (WORKER_MODE) {
       try {
         const { base64Image, model, prompt, image } = req.body;
         
+        console.log('ANALYZE: Full request body model value:', model);
+        console.log('ANALYZE: Worker URL value:', WORKER_URL);
+        console.log('ANALYZE: Should forward?', model?.includes('image-preview'), 'AND worker exists?', !!WORKER_URL);
+        
         // Route image generation to worker
-        if (model?.includes('image-preview') && WORKER_URL) {
+        const modelStr = String(model || '');
+        console.log('ANALYZE: Model string for check:', modelStr);
+        if ((modelStr.includes('image-preview') || modelStr.includes('flash-image')) && WORKER_URL) {
           console.log('🔄 Forwarding to worker:', WORKER_URL);
           try {
             const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
