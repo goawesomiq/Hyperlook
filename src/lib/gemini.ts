@@ -176,7 +176,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
   
   while (retries >= 0) {
     try {
-      const response = await fetch("/api/generate", {
+      const response = await fetch("/api/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -185,10 +185,12 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           userId: auth.currentUser?.uid || "anonymous",
           userEmail: auth.currentUser?.email || "",
           prompt,
-          mainImageBase64,
+          model: "gemini-3.1-flash-image-preview",
+          image: mainImageBase64,
           referenceImagesBase64: referenceImages,
           aspectRatio,
-          quality
+          quality,
+          responseModalities: ["IMAGE", "TEXT"]
         }),
       });
 

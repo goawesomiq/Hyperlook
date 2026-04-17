@@ -381,40 +381,68 @@ if (WORKER_MODE) {
 
     app.post("/api/analyze", async (req, res) => {
       try {
-        // Robust extraction: check both top level and nested in req.body
-        const model = req.body.model || req.body.config?.model;
-        const prompt = req.body.prompt;
-        const image = req.body.image || req.body.base64Image;
-        const base64Image = req.body.base64Image || req.body.image; // Keep existing variable for fallback below
-
-        const modelStr = String(model || '');
-        console.log('ANALYZE Debug - Model detected:', modelStr);
-
-        // FORCE forwarding if it's an image model OR if responseModalities includes IMAGE
-        const isImageReq = modelStr.includes('image-preview') || 
-                           modelStr.includes('flash-image') || 
-                           req.body.responseModalities?.includes('IMAGE');
-
-        if (isImageReq && WORKER_URL) {
-          console.log('🔄 FORWARDING image generation to worker:', WORKER_URL);
+        console.log('=== ANALYZE ENDPOINT HIT ===');
+        console.log('Full body keys:', Object.keys(req.body));
+        console.log('Full body:', JSON.stringify(req.body).substring(0, 500));
+        
+        const body = req.body;
+        
+        // Extract model from ANY possible location
+        const model = body.model || 
+                      body.config?.model || 
+                      body.generationConfig?.model ||
+                      '';
+        
+        // Check if image generation is needed
+        const hasImageModality = body.responseModalities?.includes('IMAGE') ||
+                                 body.config?.responseModalities?.includes('IMAGE');
+        
+        const isImageModel = String(model).toLowerCase().includes('image') ||
+                             String(model).toLowerCase().includes('flash-image');
+        
+        const isImageRequest = isImageModel || hasImageModality;
+        
+        console.log('Model:', model);
+        console.log('Is image request:', isImageRequest);
+        console.log('Worker URL:', WORKER_URL);
+        
+        if (isImageRequest && WORKER_URL) {
+          console.log('🔄 FORWARDING TO WORKER');
+          
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 200000);
+          
           try {
             const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
-            const workerResponse = await fetch(`${formattedUrl}/api/generate`, {
+            const workerRes = await fetch(`${formattedUrl}/api/generate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(req.body), // Send the whole body
+              body: JSON.stringify(body),
+              signal: controller.signal,
             });
             
-            const result = await workerResponse.json();
-            console.log('✅ Worker response received successfully');
+            clearTimeout(timeout);
+            
+            if (!workerRes.ok) {
+              const errText = await workerRes.text();
+              console.error('Worker returned error:', errText);
+              return res.status(500).json({ error: 'Worker error', details: errText });
+            }
+            
+            const result = await workerRes.json();
+            console.log('✅ Worker response received');
             return res.json(result);
-          } catch (error: any) {
-            console.error('❌ Worker call failed:', error.message);
-            // Don't fall through to Gemini Pro if worker fails for an image
-            return res.status(500).json({ error: 'Worker failed to generate image' });
+            
+          } catch (fetchError: any) {
+            clearTimeout(timeout);
+            console.error('❌ Worker fetch failed:', fetchError.message);
+            return res.status(500).json({ error: 'Worker unreachable', details: fetchError.message });
           }
         }
         
+        // Non-image: use existing Gemini logic below
+        console.log('📝 Using text model');
+        const base64Image = req.body.base64Image || req.body.image; // Keep existing variable for fallback below
         let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
 
         console.log("Analyze endpoint - API Key prefix:", apiKey ? apiKey.substring(0, 8) + "..." : "none");
@@ -529,6 +557,36 @@ Return the result in JSON format.`;
             isFirebaseKey: process.env.GEMINI_API_KEY === process.env.FIREBASE_API_KEY
           }
         });
+      }
+    });
+
+    app.post('/api/generate-image', async (req, res) => {
+      console.log('=== GENERATE-IMAGE ENDPOINT HIT ===');
+      
+      if (!WORKER_URL) {
+        return res.status(500).json({ error: 'WORKER_URL not configured' });
+      }
+      
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 200000);
+        
+        const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
+        const workerRes = await fetch(`${formattedUrl}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req.body),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeout);
+        const result = await workerRes.json();
+        console.log('✅ Worker response received via generate-image endpoint');
+        return res.json(result);
+        
+      } catch (error: any) {
+        console.error('❌ generate-image failed:', error.message);
+        return res.status(500).json({ error: error.message });
       }
     });
 
