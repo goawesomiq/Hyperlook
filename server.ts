@@ -84,6 +84,7 @@ async function processPhotoshootJob(job: any) {
   const requestBody = {
     contents: [
       {
+        role: 'user',
         parts: [
           { text: prompt },
           {
@@ -102,11 +103,22 @@ async function processPhotoshootJob(job: any) {
       }
     ],
     generationConfig: {
-      // For images, we don't strictly need response_schema, but we can pass aspect ratio if supported
+      responseModalities: ["IMAGE", "TEXT"],
+      temperature: 1,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 8192,
     }
   };
 
   if (job.updateProgress) await job.updateProgress(10);
+
+  console.log('GENERATE: Request body:', JSON.stringify({
+    model: 'gemini-3.1-flash-image-preview',
+    hasImage: !!mainImageBase64,
+    promptLength: prompt?.length,
+    responseModalities: ['IMAGE', 'TEXT']
+  }));
 
   console.log('GENERATE: Calling Gemini API');
   console.log('GENERATE: Waiting for response...');
@@ -118,21 +130,35 @@ async function processPhotoshootJob(job: any) {
   );
 
   console.log('GENERATE: Response received!');
+  console.log('GENERATE: Response status: 200');
+  console.log('GENERATE: Has candidates:', !!responseData.candidates);
+  console.log('GENERATE: Parts count:', 
+    responseData.candidates?.[0]?.content?.parts?.length);
 
   if (job.updateProgress) await job.updateProgress(80);
   
   let image_base64 = null;
-  if (responseData.candidates && responseData.candidates[0]?.content?.parts) {
-    for (const part of responseData.candidates[0].content.parts) {
-      if (part.inline_data) {
+  let parts: any[] = [];
+
+  if (responseData.candidates && 
+      responseData.candidates[0] && 
+      responseData.candidates[0].content &&
+      responseData.candidates[0].content.parts) {
+    
+    parts = responseData.candidates[0].content.parts;
+    
+    for (const part of parts) {
+      if (part.inline_data && part.inline_data.data) {
         image_base64 = part.inline_data.data;
+        console.log('GENERATE: Image found in response!');
         break;
       }
     }
   }
 
   if (!image_base64) {
-    throw new Error("No image generated");
+    console.log('GENERATE: Response parts:', JSON.stringify(parts));
+    throw new Error('No image generated');
   }
   console.log('GENERATE: Image saved');
 
