@@ -385,8 +385,7 @@ if (WORKER_MODE) {
         
         // Route image generation to worker
         if (model?.includes('image-preview') && WORKER_URL) {
-          console.log('🔄 Forwarding image generation to worker:', WORKER_URL);
-          
+          console.log('🔄 Forwarding to worker:', WORKER_URL);
           try {
             const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
             const workerResponse = await fetch(`${formattedUrl}/api/generate`, {
@@ -394,13 +393,20 @@ if (WORKER_MODE) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ image, prompt, model }),
             });
-            
+
             const result = await workerResponse.json();
-            console.log('✅ Worker response received');
-            return res.json(result);
+            
+            // Check if the response has the candidate data we need
+            if (result.candidates && result.candidates[0]?.content?.parts) {
+              console.log('✅ Image found in worker response, sending to frontend');
+              return res.json(result);
+            } else {
+              console.log('⚠️ Worker returned success but no image parts found');
+              return res.json(result);
+            }
           } catch (error: any) {
             console.error('❌ Worker call failed:', error.message);
-            return res.status(500).json({ error: 'Worker unavailable' });
+            return res.status(500).json({ error: 'Worker failed to return image' });
           }
         }
         
