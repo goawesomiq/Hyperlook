@@ -381,38 +381,37 @@ if (WORKER_MODE) {
 
     app.post("/api/analyze", async (req, res) => {
       try {
-        const { base64Image, model, prompt, image } = req.body;
-        
-        console.log('ANALYZE: Full request body model value:', model);
-        console.log('ANALYZE: Worker URL value:', WORKER_URL);
-        console.log('ANALYZE: Should forward?', model?.includes('image-preview'), 'AND worker exists?', !!WORKER_URL);
-        
-        // Route image generation to worker
+        // Robust extraction: check both top level and nested in req.body
+        const model = req.body.model || req.body.config?.model;
+        const prompt = req.body.prompt;
+        const image = req.body.image || req.body.base64Image;
+        const base64Image = req.body.base64Image || req.body.image; // Keep existing variable for fallback below
+
         const modelStr = String(model || '');
-        console.log('ANALYZE: Model string for check:', modelStr);
-        if ((modelStr.includes('image-preview') || modelStr.includes('flash-image')) && WORKER_URL) {
-          console.log('🔄 Forwarding to worker:', WORKER_URL);
+        console.log('ANALYZE Debug - Model detected:', modelStr);
+
+        // FORCE forwarding if it's an image model OR if responseModalities includes IMAGE
+        const isImageReq = modelStr.includes('image-preview') || 
+                           modelStr.includes('flash-image') || 
+                           req.body.responseModalities?.includes('IMAGE');
+
+        if (isImageReq && WORKER_URL) {
+          console.log('🔄 FORWARDING image generation to worker:', WORKER_URL);
           try {
             const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
             const workerResponse = await fetch(`${formattedUrl}/api/generate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image, prompt, model }),
+              body: JSON.stringify(req.body), // Send the whole body
             });
-
-            const result = await workerResponse.json();
             
-            // Check if the response has the candidate data we need
-            if (result.candidates && result.candidates[0]?.content?.parts) {
-              console.log('✅ Image found in worker response, sending to frontend');
-              return res.json(result);
-            } else {
-              console.log('⚠️ Worker returned success but no image parts found');
-              return res.json(result);
-            }
+            const result = await workerResponse.json();
+            console.log('✅ Worker response received successfully');
+            return res.json(result);
           } catch (error: any) {
             console.error('❌ Worker call failed:', error.message);
-            return res.status(500).json({ error: 'Worker failed to return image' });
+            // Don't fall through to Gemini Pro if worker fails for an image
+            return res.status(500).json({ error: 'Worker failed to generate image' });
           }
         }
         
