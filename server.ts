@@ -152,6 +152,18 @@ async function processPhotoshootJob(job: any) {
 if (WORKER_MODE) {
   console.log('Starting in WORKER mode...');
   
+  // Mini health check server for Railway
+  const healthApp = express();
+  const PORT = process.env.PORT || 3000;
+  
+  healthApp.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', mode: 'worker' });
+  });
+  
+  healthApp.listen(PORT, '0.0.0.0', () => {
+    console.log(`Worker health check on port ${PORT}`);
+  });
+  
   if (!process.env.REDIS_URL) {
     console.error("CRITICAL: REDIS_URL is required for WORKER_MODE");
     process.exit(1);
