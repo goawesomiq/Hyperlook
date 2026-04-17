@@ -68,7 +68,8 @@ async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: n
 
 async function processPhotoshootJob(job: any) {
   console.log('GENERATE: Job received', job.id);
-  const { userId, userEmail, config, mainImageBase64, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = job.data;
+  const { userId, userEmail, config, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = job.data;
+  const mainImageBase64 = job.data.mainImageBase64 || job.data.image || job.data.base64Image;
   
   const ADMIN_EMAIL = "goawesomiq@gmail.com";
   let isAdmin = userEmail === ADMIN_EMAIL;
@@ -185,10 +186,45 @@ if (WORKER_MODE) {
   const healthApp = express();
   const PORT = process.env.PORT || 3000;
   
+  healthApp.use(express.json({ limit: "50mb" }));
+
   healthApp.get('/api/health', (req, res) => {
     res.json({ status: 'ok', mode: 'worker' });
   });
   
+  // HTTP endpoint for synchronous generation from Hyperlook (Web Server)
+  healthApp.post('/generate', async (req, res) => {
+    try {
+      console.log('Worker /generate accessed synchronously');
+      const job = {
+        id: 'sync-' + Date.now(),
+        data: req.body,
+        updateProgress: async (p: number) => console.log('Worker sync progress:', p)
+      };
+      const result = await processPhotoshootJob(job);
+      
+      // Return exactly what the Web Server expects for forwarding checks
+      return res.json({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inline_data: {
+                    data: result.image_base64
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      });
+    } catch (error: any) {
+      console.error('Worker /generate error:', error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   healthApp.listen(PORT, '0.0.0.0', () => {
     console.log(`Worker health check on port ${PORT}`);
   });
@@ -414,7 +450,7 @@ if (WORKER_MODE) {
           
           try {
             const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
-            const workerRes = await fetch(`${formattedUrl}/api/generate`, {
+            const workerRes = await fetch(`${formattedUrl}/generate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
@@ -572,7 +608,7 @@ Return the result in JSON format.`;
         const timeout = setTimeout(() => controller.abort(), 200000);
         
         const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
-        const workerRes = await fetch(`${formattedUrl}/api/generate`, {
+        const workerRes = await fetch(`${formattedUrl}/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(req.body),

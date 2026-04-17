@@ -9,12 +9,31 @@ export async function analyzeGarment(base64Image: string) {
 
   while (retries >= 0) {
     try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
+      const prompt = `Analyze this garment image deeply. 
+Identify:
+1. Garment Type (e.g., Saree, Sherwani, Kurti, Trousers, etc.)
+2. Gender (Male, Female, Unisex)
+3. Age Group (Infant, Toddler, Child (specify approx age), Teen, Adult)
+4. Style (Traditional, Formal, Casual, Western, etc.)
+5. Key Features (Color, Pattern, Material, Detailing)
+6. Category: Is this a "top", "bottom", or a "full_set"?
+7. Complementary Options: Provide 4 to 6 distinct AI-suggested options for the "other half" (e.g., if it's a top, suggest bottoms; if it's a bottom, suggest tops; if it's a full set, suggest accessories or layering). The color and design should be AI-based and best suited to the input product.
+8. Footwear Options: Provide 4 to 6 distinct AI-suggested footwear options (e.g., Sandal, Jutti, Sneaker, Heels, Loafers) that best suit the overall garment style.
+
+Return the result in JSON format.`;
+
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ base64Image }),
+        body: JSON.stringify({
+          model: 'gemini-3.1-flash-image-preview',
+          image: base64Image,
+          base64Image: base64Image,
+          prompt: prompt,
+          responseModalities: ['IMAGE', 'TEXT'],
+        }),
       });
 
       if (!response.ok) {
