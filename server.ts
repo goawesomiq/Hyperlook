@@ -480,6 +480,10 @@ if (WORKER_MODE) {
                       body.generationConfig?.model ||
                       '';
         
+        // Define robust intent routing: If the prompt explicitly asks to Analyze, NEVER send it to the Image Generation Worker.
+        const promptTextForCheck = body.prompt || body.contents?.[0]?.parts?.find((p: any) => p.text)?.text || '';
+        const isExplicitAnalysisPrompt = typeof promptTextForCheck === 'string' && promptTextForCheck.includes('Analyze this garment');
+        
         // Check if image generation is needed
         const hasImageModality = body.responseModalities?.includes('IMAGE') ||
                                  body.config?.responseModalities?.includes('IMAGE');
@@ -487,7 +491,8 @@ if (WORKER_MODE) {
         const isImageModel = String(model).toLowerCase().includes('image') ||
                              String(model).toLowerCase().includes('flash-image');
         
-        const isImageRequest = isImageModel || hasImageModality;
+        // Final routing decision
+        const isImageRequest = !isExplicitAnalysisPrompt && (isImageModel || hasImageModality);
         
         console.log('Model:', model);
         console.log('Is image request:', isImageRequest);
