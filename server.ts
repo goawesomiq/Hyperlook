@@ -106,29 +106,52 @@ async function processPhotoshootJob(job: any) {
     }
   }
 
+  const cleanedMain = cleanBase64(mainImageBase64);
+  const cleanedRefs = (referenceImagesBase64 || []).map(cleanBase64).filter(Boolean);
+
+  console.log('Building Gemini request:', {
+    hasMain: !!cleanedMain,
+    mainLength: cleanedMain?.length,
+    refCount: cleanedRefs.length
+  });
+
+  // Build parts array
+  const imageParts = [];
+
+  // Add main garment image
+  if (cleanedMain) {
+    imageParts.push({
+      inline_data: {
+        mime_type: 'image/jpeg',
+        data: cleanedMain
+      }
+    });
+  }
+
+  // Add reference images
+  cleanedRefs.forEach((ref: string) => {
+    imageParts.push({
+      inline_data: {
+        mime_type: 'image/jpeg', 
+        data: ref
+      }
+    });
+  });
+
   const requestBody = {
     contents: [
       {
         role: 'user',
         parts: [
-          { text: `GENERATE A NEW PHOTOREALISTIC IMAGE. DO NOT ANALYZE OR DESCRIBE. CREATE A NEW IMAGE SHOWING: ${prompt}` },
-          {
-            inline_data: {
-              mime_type: "image/jpeg",
-              data: mainImageBase64
-            }
-          },
-          ...cleanedReferenceImages.map((b64: string) => ({
-            inline_data: {
-              mime_type: "image/jpeg",
-              data: b64
-            }
-          }))
+          ...imageParts,
+          { 
+            text: prompt
+          }
         ]
       }
     ],
     generationConfig: {
-      responseModalities: ["IMAGE", "TEXT"],
+      responseModalities: ['IMAGE', 'TEXT'],
       temperature: 1,
       topP: 0.95,
       topK: 40,

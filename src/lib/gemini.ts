@@ -190,6 +190,23 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
     ...referenceImages.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img } })),
   ];
 
+  // If no reference images provided, create a minimal valid placeholder
+  // so Gemini knows this is a generation task not analysis task
+  const finalReferenceImages = (referenceImages && referenceImages.length > 0) 
+    ? referenceImages 
+    : [];
+
+  // Log what we are sending
+  console.log('Sending to analyze:', {
+    hasImage: !!mainImageBase64,
+    referenceCount: finalReferenceImages.length,
+    model: 'gemini-3.1-flash-image-preview'
+  });
+
+  const finalPrompt = finalReferenceImages.length === 0
+    ? `Create a photorealistic fashion photograph. Generate a new image from scratch showing a model wearing this exact garment. ${prompt}`
+    : prompt;
+
   let retries = 1;
   let delay = 1000;
   
@@ -203,11 +220,11 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         body: JSON.stringify({
           userId: auth.currentUser?.uid || "anonymous",
           userEmail: auth.currentUser?.email || "",
-          prompt,
+          prompt: finalPrompt,
           model: "gemini-3.1-flash-image-preview",
           image: mainImageBase64,
           base64Image: mainImageBase64,
-          referenceImagesBase64: referenceImages || [],
+          referenceImagesBase64: finalReferenceImages,
           aspectRatio,
           quality,
           responseModalities: ["IMAGE", "TEXT"]
