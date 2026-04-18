@@ -69,7 +69,21 @@ async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: n
 async function processPhotoshootJob(job: any) {
   console.log('GENERATE: Job received', job.id);
   const { userId, userEmail, config, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = job.data;
-  const mainImageBase64 = job.data.mainImageBase64 || job.data.image || job.data.base64Image;
+  
+  // Strip data URI prefix if present - Gemini needs raw base64 only
+  const cleanBase64 = (b64: string): string => {
+    if (!b64) return b64;
+    if (b64.includes(',')) {
+      return b64.split(',')[1];
+    }
+    return b64;
+  };
+
+  const mainImageBase64 = cleanBase64(
+    job.data.mainImageBase64 || job.data.image || job.data.base64Image
+  );
+  
+  const cleanedReferenceImages = (referenceImagesBase64 || []).map(cleanBase64);
   
   const ADMIN_EMAIL = "goawesomiq@gmail.com";
   let isAdmin = userEmail === ADMIN_EMAIL;
@@ -97,7 +111,7 @@ async function processPhotoshootJob(job: any) {
               data: mainImageBase64
             }
           },
-          ...(referenceImagesBase64 || []).map((b64: string) => ({
+          ...cleanedReferenceImages.map((b64: string) => ({
             inline_data: {
               mime_type: "image/jpeg",
               data: b64
@@ -150,20 +164,27 @@ async function processPhotoshootJob(job: any) {
       responseData.candidates[0].content.parts) {
     
     parts = responseData.candidates[0].content.parts;
-    
-    for (const part of parts) {
-      if (part.inline_data && part.inline_data.data) {
-        image_base64 = part.inline_data.data;
-        console.log('GENERATE: Image found in response!');
-        break;
-      }
-    }
   }
 
-  if (!image_base64) {
-    console.log('GENERATE: Response parts:', JSON.stringify(parts));
-    throw new Error('No image generated');
+  console.log('All parts received:', JSON.stringify(parts.map(p => ({
+    hasText: !!p.text,
+    hasInlineData: !!p.inline_data,
+    mimeType: p.inline_data?.mime_type
+  }))));
+
+  const imagePart = parts.find(p => p.inline_data);
+
+  if (!imagePart) {
+    // Log what we got instead
+    const textPart = parts.find(p => p.text);
+    console.error('No image in response. Got text instead:', textPart?.text?.substring(0, 200));
+    console.error('This means the prompt is asking for analysis not generation');
+    
+    throw new Error(`No image generated - prompt may be incorrect. Text received: ${textPart?.text?.substring(0, 500)}`);
   }
+  
+  image_base64 = imagePart.inline_data.data;
+  console.log('GENERATE: Image found in response!');
   console.log('GENERATE: Image saved');
 
   if (!isAdmin && projectId && firebaseApiKey && userId) {
