@@ -28,11 +28,10 @@ Return the result in JSON format.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gemini-3.1-flash-image-preview',
+          model: 'gemini-3.1-pro-preview',
           image: base64Image,
           base64Image: base64Image,
           prompt: prompt,
-          responseModalities: ['IMAGE', 'TEXT'],
         }),
       });
 
