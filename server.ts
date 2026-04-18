@@ -85,6 +85,13 @@ async function processPhotoshootJob(job: any) {
   
   const cleanedReferenceImages = (referenceImagesBase64 || []).map(cleanBase64);
   
+  console.log('Images received:', {
+    hasMainImage: !!mainImageBase64,
+    mainImageLength: mainImageBase64?.length || 0,
+    referenceImagesCount: (referenceImagesBase64 || []).length,
+    cleanedMainLength: mainImageBase64 ? cleanBase64(mainImageBase64).length : 0
+  });
+
   const ADMIN_EMAIL = "goawesomiq@gmail.com";
   let isAdmin = userEmail === ADMIN_EMAIL;
   const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
@@ -104,7 +111,7 @@ async function processPhotoshootJob(job: any) {
       {
         role: 'user',
         parts: [
-          { text: prompt },
+          { text: `GENERATE A NEW PHOTOREALISTIC IMAGE. DO NOT ANALYZE OR DESCRIBE. CREATE A NEW IMAGE SHOWING: ${prompt}` },
           {
             inline_data: {
               mime_type: "image/jpeg",

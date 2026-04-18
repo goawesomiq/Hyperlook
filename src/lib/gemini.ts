@@ -206,7 +206,8 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           prompt,
           model: "gemini-3.1-flash-image-preview",
           image: mainImageBase64,
-          referenceImagesBase64: referenceImages,
+          base64Image: mainImageBase64,
+          referenceImagesBase64: referenceImages || [],
           aspectRatio,
           quality,
           responseModalities: ["IMAGE", "TEXT"]
