@@ -251,10 +251,13 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         const parts = responseData.candidates[0]?.content?.parts || [];
         const imagePart = parts.find((p: any) => p.inlineData || p.inline_data);
         if (imagePart) {
-          const data = imagePart.inlineData?.data || imagePart.inline_data?.data;
-          return `data:image/jpeg;base64,${data}`;
+          const rawData = imagePart.inlineData?.data || imagePart.inline_data?.data;
+          const data = String(rawData || "").replace(/\s/g, '');
+          if (data.length > 100) {
+            return `data:image/jpeg;base64,${data}`;
+          }
         }
-        throw new Error("No image data found in synchronous response");
+        throw new Error("No valid image data found in synchronous response");
       }
 
       const { jobId } = responseData;
@@ -262,14 +265,19 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         throw new Error("No Job ID or Image data received from server");
       }
 
-      const result = await new Promise<string>((resolve, reject) => {
+      const resultDataUrl = await new Promise<string>((resolve, reject) => {
         const eventSource = new EventSource(`/api/status/${jobId}`);
         eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
             if (data.state === 'completed') {
               eventSource.close();
-              const b64 = data.returnvalue?.image_base64 || data.returnvalue;
+              const b64Raw = data.returnvalue?.image_base64 || data.returnvalue;
+              if (typeof b64Raw !== 'string') {
+                 reject(new Error("Worker returned non-string image data."));
+                 return;
+              }
+              const b64 = b64Raw.replace(/\s/g, '');
               resolve(`data:image/jpeg;base64,${b64}`);
             } else if (data.state === 'failed') {
               eventSource.close();
@@ -285,55 +293,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         };
       });
 
-      const dataUrl = `data:image/jpeg;base64,${result.image_base64}`;
-
-      try {
-        // Ultra-fast lossless PNG conversion using createImageBitmap and OffscreenCanvas
-        const fetchResponse = await fetch(dataUrl);
-        const blob = await fetchResponse.blob();
-        const bitmap = await createImageBitmap(blob);
-        
-        if (typeof OffscreenCanvas !== 'undefined') {
-          const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(bitmap, 0, 0);
-            const pngBlob = await canvas.convertToBlob({ type: 'image/png' });
-            return await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(pngBlob);
-            });
-          }
-        }
-        
-        // Fallback to async DOM canvas if OffscreenCanvas is not supported
-        const canvas = document.createElement('canvas');
-        canvas.width = bitmap.width;
-        canvas.height = bitmap.height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(bitmap, 0, 0);
-          return await new Promise<string>((resolve, reject) => {
-            canvas.toBlob((pngBlob) => {
-              if (pngBlob) {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(pngBlob);
-              } else {
-                resolve(dataUrl); // fallback
-              }
-            }, 'image/png');
-          });
-        }
-      } catch (e) {
-        console.error("Fast PNG conversion failed, falling back to original", e);
-        return dataUrl;
-      }
-      
-      return dataUrl;
+      return resultDataUrl;
     } catch (error: any) {
       console.error("Gemini API Error:", error);
       const errorString = JSON.stringify(error, Object.getOwnPropertyNames(error)) + (error?.message || "");

@@ -16,13 +16,51 @@ interface ResultGalleryProps {
 }
 
 export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNewInput, onAddMorePoses, isGenerating, progress = 0, aspectRatio = "1:1", generatingIndex = null, logo }: ResultGalleryProps) {
-  const downloadImage = (url: string, index: number) => {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `photoshoot-result-${index + 1}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadImage = (dataUrl: string, index: number) => {
+    try {
+      // Split the data URL to get the content type and base64 data
+      const parts = dataUrl.split(',');
+      if (parts.length !== 2) throw new Error("Invalid image data");
+      
+      const contentType = parts[0].split(':')[1].split(';')[0];
+      const base64Data = parts[1].replace(/\s/g, '');
+      
+      // Convert base64 to Blob
+      const byteCharacters = atob(base64Data);
+      const byteArrays = [];
+      
+      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+          byteNumbers[i] = slice.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+      }
+      
+      const blob = new Blob(byteArrays, { type: contentType });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `photoshoot-result-${index + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the object URL
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (e) {
+      console.error("Download failed:", e);
+      // Fallback to direct href if blob conversion fails
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `photoshoot-result-${index + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   // Map aspect ratio string to Tailwind classes

@@ -9,7 +9,7 @@ import { Queue, Worker } from 'bullmq';
 import { getUserCredits, updateUserCredits } from './firestoreRest';
 
 const WORKER_MODE = process.env.WORKER_MODE === 'true';
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3000);
 
 const WORKER_URL = process.env.WORKER_URL || process.env.RAILWAY_PRIVATE_DOMAIN;
 console.log('Worker URL configured as:', WORKER_URL);
@@ -227,21 +227,15 @@ async function processPhotoshootJob(job: any) {
     }
   }
   
-  image_base64 = (imagePart.inlineData?.data || imagePart.inline_data?.data);
+  image_base64 = (imagePart.inlineData?.data || imagePart.inline_data?.data || "").toString().replace(/\s/g, '');
   
-  // Ensure we don't return a broken string with metadata already present
-  if (image_base64 && typeof image_base64 === 'string') {
-    if (image_base64.startsWith('data:')) {
-      console.log('GENERATE: Gemini returned Data URL, stripping prefix');
-      image_base64 = image_base64.split(',')[1];
-    }
-    // Simple validation of base64
-    if (image_base64.length < 100) {
-      throw new Error("Gemini returned an invalid or too-short image data.");
-    }
+  // High-fidelity validation: Ensure we have actual base64 data
+  if (image_base64.length < 1000) {
+     console.error('Invalid image data length:', image_base64.length);
+     throw new Error("Gemini returned invalid or corrupted image data. Please try a different prompt.");
   }
 
-  console.log('GENERATE: Image found in response! Length:', image_base64?.length);
+  console.log('GENERATE: Image validated! Length:', image_base64.length);
 
   if (!isAdmin && projectId && firebaseApiKey && userId) {
     await updateUserCredits(projectId, userId, -cost, firebaseApiKey);
@@ -261,7 +255,7 @@ if (WORKER_MODE) {
   
   // Mini health check server for Railway
   const healthApp = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = Number(process.env.PORT || 3000);
   
   healthApp.use(express.json({ limit: "50mb" }));
 
@@ -288,7 +282,8 @@ if (WORKER_MODE) {
               parts: [
                 {
                   inlineData: {
-                    data: result.image_base64
+                    mimeType: 'image/jpeg',
+                    data: result.image_base64.replace(/\s/g, '')
                   }
                 }
               ]
