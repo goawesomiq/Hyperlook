@@ -121,8 +121,8 @@ async function processPhotoshootJob(job: any) {
   // Add main garment image
   if (cleanedMain) {
     imageParts.push({
-      inline_data: {
-        mime_type: 'image/jpeg',
+      inlineData: {
+        mimeType: 'image/jpeg',
         data: cleanedMain
       }
     });
@@ -131,12 +131,16 @@ async function processPhotoshootJob(job: any) {
   // Add reference images
   cleanedRefs.forEach((ref: string) => {
     imageParts.push({
-      inline_data: {
-        mime_type: 'image/jpeg', 
+      inlineData: {
+        mimeType: 'image/jpeg', 
         data: ref
       }
     });
   });
+
+  // Force generative intent at the start for the Worker
+  const generativeForcePrefix = "GENERATE PHOTOREALISTIC IMAGE. DO NOT ANALYZE. ";
+  const finalPromptForGemini = prompt.startsWith(generativeForcePrefix) ? prompt : generativeForcePrefix + prompt;
 
   const requestBody = {
     contents: [
@@ -145,7 +149,7 @@ async function processPhotoshootJob(job: any) {
         parts: [
           ...imageParts,
           { 
-            text: prompt
+            text: finalPromptForGemini
           }
         ]
       }
@@ -198,22 +202,26 @@ async function processPhotoshootJob(job: any) {
 
   console.log('All parts received:', JSON.stringify(parts.map(p => ({
     hasText: !!p.text,
-    hasInlineData: !!p.inline_data,
-    mimeType: p.inline_data?.mime_type
+    hasInlineData: !!(p.inlineData || p.inline_data),
+    keys: Object.keys(p)
   }))));
 
-  const imagePart = parts.find(p => p.inline_data);
+  const imagePart = parts.find(p => p.inlineData || p.inline_data);
 
   if (!imagePart) {
     // Log what we got instead
     const textPart = parts.find(p => p.text);
-    console.error('No image in response. Got text instead:', textPart?.text?.substring(0, 200));
-    console.error('This means the prompt is asking for analysis not generation');
+    console.error('No image in response. Part details:', JSON.stringify(parts));
+    console.error('This means the prompt is asking for analysis not generation or Safety Filter blocked it');
     
-    throw new Error(`No image generated - prompt may be incorrect. Text received: ${textPart?.text?.substring(0, 500)}`);
+    if (textPart?.text) {
+      throw new Error(`No image generated - Gemini returned text instead. This usually happens if the prompt is too clinical or descriptive. Content: ${textPart.text.substring(0, 500)}`);
+    } else {
+      throw new Error(`No image generated and no text found. This often indicates a Safety Filter block or a model error. Full response keys: ${Object.keys(responseData)}`);
+    }
   }
   
-  image_base64 = imagePart.inline_data.data;
+  image_base64 = (imagePart.inlineData?.data || imagePart.inline_data?.data);
   console.log('GENERATE: Image found in response!');
   console.log('GENERATE: Image saved');
 
@@ -577,8 +585,8 @@ Return the result in JSON format.`;
             }
           ],
           generationConfig: {
-            response_mime_type: "application/json",
-            response_schema: {
+            responseMimeType: "application/json",
+            responseSchema: {
               type: "OBJECT",
               properties: {
                 garmentType: { type: "STRING" },
