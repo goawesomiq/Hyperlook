@@ -725,14 +725,34 @@ Return the result in JSON format.`;
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable proxy buffering for SSE
       
-      const job = await imageQueue.getJob(req.params.jobId);
+      const jobId = req.params.jobId;
+      console.log(`SSE: Client connected for job ${jobId}`);
+
+      const job = await imageQueue.getJob(jobId);
       if (!job) {
+        console.error(`SSE: Job ${jobId} not found`);
         res.write(`data: ${JSON.stringify({ state: 'failed', error: 'Job not found' })}\n\n`);
         res.end();
         return;
       }
       
+      // Send initial state immediately
+      const initialState = await job.getState();
+      console.log(`SSE: Sending initial state for ${jobId}: ${initialState}`);
+      res.write(`data: ${JSON.stringify({ 
+        state: initialState, 
+        progress: job.progress, 
+        returnvalue: job.returnvalue, 
+        failedReason: job.failedReason 
+      })}\n\n`);
+
+      if (initialState === 'completed' || initialState === 'failed') {
+        res.end();
+        return;
+      }
+
       const interval = setInterval(async () => {
         try {
           const state = await job.getState();
@@ -743,16 +763,19 @@ Return the result in JSON format.`;
           res.write(`data: ${JSON.stringify({ state, progress, returnvalue, failedReason })}\n\n`);
           
           if (state === 'completed' || state === 'failed') {
+            console.log(`SSE: Job ${jobId} finished with state: ${state}`);
             clearInterval(interval);
             res.end();
           }
         } catch (e) {
+          console.error(`SSE Loop Error for ${jobId}:`, e);
           clearInterval(interval);
           res.end();
         }
       }, 1000);
       
       req.on('close', () => {
+        console.log(`SSE: Connection closed for ${jobId}`);
         clearInterval(interval);
       });
     });

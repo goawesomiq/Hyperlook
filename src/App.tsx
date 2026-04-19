@@ -303,7 +303,17 @@ export default function App() {
     setCurrentStep(2);
   };
 
+  // Helper to safely extract base64 from a potentially prefixed string
+  const getRawBase64 = (str: string | null): string => {
+    if (!str) return "";
+    if (typeof str !== 'string') return "";
+    if (str.includes(",")) return str.split(",")[1];
+    return str;
+  };
+
   const handleGenerate = async () => {
+    if (!mainImage || isProcessing) return;
+    
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
       Notification.requestPermission();
     }
@@ -334,7 +344,7 @@ export default function App() {
           const firstPose = posesToGenerate[0];
           currentConfig.referenceImages = refImages;
           
-          const result = await generatePhotoshoot(currentConfig, mainImage!, firstPose);
+          const result = await generatePhotoshoot(currentConfig, getRawBase64(mainImage), firstPose);
           if (currentGenId !== generationIdRef.current) return;
           
           currentFirstResult = result;
@@ -343,32 +353,29 @@ export default function App() {
           
           const remainingPoses = posesToGenerate.slice(1);
           if (remainingPoses.length > 0) {
-            const base64Ref = currentFirstResult && currentFirstResult.includes(",") ? currentFirstResult.split(",")[1] : currentFirstResult;
-            if (!base64Ref) {
-               console.error("No valid base64 extracted from first result");
-            }
+            const base64Ref = getRawBase64(currentFirstResult);
             const parallelConfig = {
               ...currentConfig,
               isMagicRef: true,
-              referenceImages: [(mainImage!.includes(",") ? mainImage!.split(",")[1] : mainImage!), ...refImages]
+              referenceImages: [getRawBase64(mainImage), ...refImages]
             };
             
             const parallelResults = await Promise.all(
-              remainingPoses.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref || currentFirstResult, `${pose}. CRITICAL: This must be a DISTINCT VARIATION (Variation ${index + 1}). Change the arm placement, leg stance, or slight body angle to ensure it is NOT identical to the primary pose or other variations.`))
+              remainingPoses.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref, `${pose}. DISTINCT VARIATION ${index + 1}.`))
             );
             if (currentGenId !== generationIdRef.current) return;
             newResults.push(...parallelResults);
           }
         } else {
-          const base64Ref = currentFirstResult && currentFirstResult.includes(",") ? currentFirstResult.split(",")[1] : currentFirstResult;
+          const base64Ref = getRawBase64(currentFirstResult);
           const parallelConfig = {
             ...currentConfig,
             isMagicRef: true,
-            referenceImages: [(mainImage!.includes(",") ? mainImage!.split(",")[1] : mainImage!), ...refImages]
+            referenceImages: [getRawBase64(mainImage), ...refImages]
           };
           
           const parallelResults = await Promise.all(
-            posesToGenerate.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref || currentFirstResult, `${pose}. CRITICAL: This must be a DISTINCT VARIATION (Variation ${index + 1}). Change the arm placement, leg stance, or slight body angle to ensure it is NOT identical to the primary pose or other variations.`))
+            posesToGenerate.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref, `${pose}. DISTINCT VARIATION ${index + 1}.`))
           );
           if (currentGenId !== generationIdRef.current) return;
           newResults.push(...parallelResults);
@@ -408,7 +415,7 @@ export default function App() {
     } catch (err: any) {
       if (currentGenId !== generationIdRef.current) return;
       setError(err?.message || "Failed to generate photoshoot. Please try again.");
-      console.error(err);
+      console.error("Photoshoot execution error:", err);
     } finally {
       if (currentGenId === generationIdRef.current) {
         clearInterval(progressInterval);

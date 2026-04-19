@@ -266,30 +266,43 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
       }
 
       const resultDataUrl = await new Promise<string>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          eventSource.close();
+          reject(new Error("Photoshoot generation timed out (120s limit). Please check your internet and try again."));
+        }, 120000); // 120 second safety timeout
+
         const eventSource = new EventSource(`/api/status/${jobId}`);
+        console.log(`SSE: Connected to /api/status/${jobId}`);
+
         eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
+            console.log(`SSE: Received update for ${jobId}:`, data.state);
+            
             if (data.state === 'completed') {
+              clearTimeout(timeout);
               eventSource.close();
               const b64Raw = data.returnvalue?.image_base64 || data.returnvalue;
-              if (typeof b64Raw !== 'string') {
-                 reject(new Error("Worker returned non-string image data."));
+              if (typeof b64Raw !== 'string' || !b64Raw) {
+                 reject(new Error("Worker returned invalid image data format."));
                  return;
               }
               const b64 = b64Raw.replace(/\s/g, '');
               resolve(`data:image/jpeg;base64,${b64}`);
             } else if (data.state === 'failed') {
+              clearTimeout(timeout);
               eventSource.close();
-              reject(new Error(data.failedReason || 'Generation failed'));
+              reject(new Error(data.failedReason || 'Generation failed on AI server'));
             }
           } catch (e) {
-            console.error("Error parsing SSE data", e);
+            console.error("SSE: Error parsing data", e);
           }
         };
+
         eventSource.onerror = (err) => {
-          eventSource.close();
-          reject(new Error('SSE connection error'));
+          console.error(`SSE: Connection error for ${jobId}`, err);
+          // Don't reject immediately on transient SSE errors as browser might retry
+          // The timeout will catch permanent hangs
         };
       });
 

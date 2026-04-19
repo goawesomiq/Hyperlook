@@ -24,8 +24,8 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
       
       const contentType = parts[0].split(':')[1].split(';')[0];
       const base64Data = parts[1].replace(/\s/g, '');
-      
-      // Convert base64 to Blob
+      if (base64Data.length < 100) throw new Error("Image data too small");
+
       const byteCharacters = atob(base64Data);
       const byteArrays = [];
       
