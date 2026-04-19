@@ -755,15 +755,22 @@ Return the result in JSON format.`;
 
       const interval = setInterval(async () => {
         try {
-          const state = await job.getState();
-          const progress = job.progress;
-          const returnvalue = job.returnvalue;
-          const failedReason = job.failedReason;
+          const currentJob = await imageQueue.getJob(jobId);
+          if (!currentJob) {
+            clearInterval(interval);
+            res.end();
+            return;
+          }
+
+          const state = await currentJob.getState();
+          const progress = currentJob.progress;
+          const returnvalue = currentJob.returnvalue;
+          const failedReason = currentJob.failedReason;
           
           res.write(`data: ${JSON.stringify({ state, progress, returnvalue, failedReason })}\n\n`);
           
           if (state === 'completed' || state === 'failed') {
-            console.log(`SSE: Job ${jobId} finished with state: ${state}`);
+            console.log(`SSE: Job ${jobId} finished with state: ${state}. Returnvalue exists: ${!!returnvalue}`);
             clearInterval(interval);
             res.end();
           }

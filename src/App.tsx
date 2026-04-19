@@ -319,8 +319,11 @@ export default function App() {
     }
 
     setIsProcessing(true);
+    setResults([]);
+    setFirstResult(null);
     setError(null);
     setProgress(0);
+    setCurrentStep(3); // Result step
     setActivePage("workspace"); // Immediately move to workspace
 
     const currentGenId = ++generationIdRef.current;
