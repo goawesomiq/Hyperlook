@@ -226,7 +226,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           referenceImagesBase64: finalReferenceImages,
           aspectRatio,
           quality,
-          responseModalities: ["IMAGE", "TEXT"]
+          response_modalities: ["IMAGE", "TEXT"]
         }),
       });
 

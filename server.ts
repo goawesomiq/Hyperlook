@@ -71,26 +71,35 @@ async function processPhotoshootJob(job: any) {
   const { userId, userEmail, config, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = job.data;
   
   // Strip data URI prefix if present - Gemini needs raw base64 only
-  const cleanBase64 = (b64: string): string => {
-    if (!b64) return b64;
-    if (b64.includes(',')) {
-      return b64.split(',')[1];
+  const cleanBase64 = (b64: any): string => {
+    if (!b64 || b64 === "undefined" || b64 === "null" || (typeof b64 === 'string' && b64.length < 50)) {
+      return "";
     }
-    return b64;
+    const b64Str = String(b64);
+    if (b64Str.includes(',')) {
+      return b64Str.split(',')[1];
+    }
+    return b64Str;
   };
 
   const mainImageBase64 = cleanBase64(
     job.data.mainImageBase64 || job.data.image || job.data.base64Image
   );
   
-  const cleanedReferenceImages = (referenceImagesBase64 || []).map(cleanBase64);
+  const cleanedReferenceImages = (referenceImagesBase64 || []).map(cleanBase64).filter(Boolean);
   
+  const cleanedMain = cleanBase64(mainImageBase64);
+  const cleanedRefs = cleanedReferenceImages;
+
   console.log('Images received:', {
-    hasMainImage: !!mainImageBase64,
-    mainImageLength: mainImageBase64?.length || 0,
-    referenceImagesCount: (referenceImagesBase64 || []).length,
-    cleanedMainLength: mainImageBase64 ? cleanBase64(mainImageBase64).length : 0
+    hasMainImage: !!cleanedMain,
+    mainLength: cleanedMain?.length || 0,
+    referenceImagesCount: cleanedRefs.length
   });
+
+  if (!cleanedMain) {
+    throw new Error("No valid main garment image received. Please check your upload.");
+  }
 
   const ADMIN_EMAIL = "goawesomiq@gmail.com";
   let isAdmin = userEmail === ADMIN_EMAIL;
@@ -106,9 +115,6 @@ async function processPhotoshootJob(job: any) {
     }
   }
 
-  const cleanedMain = cleanBase64(mainImageBase64);
-  const cleanedRefs = (referenceImagesBase64 || []).map(cleanBase64).filter(Boolean);
-
   console.log('Building Gemini request:', {
     hasMain: !!cleanedMain,
     mainLength: cleanedMain?.length,
@@ -121,8 +127,8 @@ async function processPhotoshootJob(job: any) {
   // Add main garment image
   if (cleanedMain) {
     imageParts.push({
-      inlineData: {
-        mimeType: 'image/jpeg',
+      inline_data: {
+        mime_type: 'image/jpeg',
         data: cleanedMain
       }
     });
@@ -131,8 +137,8 @@ async function processPhotoshootJob(job: any) {
   // Add reference images
   cleanedRefs.forEach((ref: string) => {
     imageParts.push({
-      inlineData: {
-        mimeType: 'image/jpeg', 
+      inline_data: {
+        mime_type: 'image/jpeg', 
         data: ref
       }
     });
@@ -155,11 +161,11 @@ async function processPhotoshootJob(job: any) {
       }
     ],
     generationConfig: {
-      responseModalities: ['IMAGE', 'TEXT'],
+      response_modalities: ['IMAGE', 'TEXT'],
       temperature: 1,
-      topP: 0.95,
-      topK: 40,
-      maxOutputTokens: 8192,
+      top_p: 0.95,
+      top_k: 40,
+      max_output_tokens: 8192,
     }
   };
 
@@ -222,8 +228,20 @@ async function processPhotoshootJob(job: any) {
   }
   
   image_base64 = (imagePart.inlineData?.data || imagePart.inline_data?.data);
-  console.log('GENERATE: Image found in response!');
-  console.log('GENERATE: Image saved');
+  
+  // Ensure we don't return a broken string with metadata already present
+  if (image_base64 && typeof image_base64 === 'string') {
+    if (image_base64.startsWith('data:')) {
+      console.log('GENERATE: Gemini returned Data URL, stripping prefix');
+      image_base64 = image_base64.split(',')[1];
+    }
+    // Simple validation of base64
+    if (image_base64.length < 100) {
+      throw new Error("Gemini returned an invalid or too-short image data.");
+    }
+  }
+
+  console.log('GENERATE: Image found in response! Length:', image_base64?.length);
 
   if (!isAdmin && projectId && firebaseApiKey && userId) {
     await updateUserCredits(projectId, userId, -cost, firebaseApiKey);

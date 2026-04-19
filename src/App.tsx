@@ -343,29 +343,32 @@ export default function App() {
           
           const remainingPoses = posesToGenerate.slice(1);
           if (remainingPoses.length > 0) {
-            const base64Ref = currentFirstResult.split(",")[1];
+            const base64Ref = currentFirstResult && currentFirstResult.includes(",") ? currentFirstResult.split(",")[1] : currentFirstResult;
+            if (!base64Ref) {
+               console.error("No valid base64 extracted from first result");
+            }
             const parallelConfig = {
               ...currentConfig,
               isMagicRef: true,
-              referenceImages: [mainImage!.split(",")[1] || mainImage!, ...refImages]
+              referenceImages: [(mainImage!.includes(",") ? mainImage!.split(",")[1] : mainImage!), ...refImages]
             };
             
             const parallelResults = await Promise.all(
-              remainingPoses.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref, `${pose}. CRITICAL: This must be a DISTINCT VARIATION (Variation ${index + 1}). Change the arm placement, leg stance, or slight body angle to ensure it is NOT identical to the primary pose or other variations.`))
+              remainingPoses.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref || currentFirstResult, `${pose}. CRITICAL: This must be a DISTINCT VARIATION (Variation ${index + 1}). Change the arm placement, leg stance, or slight body angle to ensure it is NOT identical to the primary pose or other variations.`))
             );
             if (currentGenId !== generationIdRef.current) return;
             newResults.push(...parallelResults);
           }
         } else {
-          const base64Ref = currentFirstResult.split(",")[1];
+          const base64Ref = currentFirstResult && currentFirstResult.includes(",") ? currentFirstResult.split(",")[1] : currentFirstResult;
           const parallelConfig = {
             ...currentConfig,
             isMagicRef: true,
-            referenceImages: [mainImage!.split(",")[1] || mainImage!, ...refImages]
+            referenceImages: [(mainImage!.includes(",") ? mainImage!.split(",")[1] : mainImage!), ...refImages]
           };
           
           const parallelResults = await Promise.all(
-            posesToGenerate.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref, `${pose}. CRITICAL: This must be a DISTINCT VARIATION (Variation ${index + 1}). Change the arm placement, leg stance, or slight body angle to ensure it is NOT identical to the primary pose or other variations.`))
+            posesToGenerate.map((pose, index) => generatePhotoshoot(parallelConfig, base64Ref || currentFirstResult, `${pose}. CRITICAL: This must be a DISTINCT VARIATION (Variation ${index + 1}). Change the arm placement, leg stance, or slight body angle to ensure it is NOT identical to the primary pose or other variations.`))
           );
           if (currentGenId !== generationIdRef.current) return;
           newResults.push(...parallelResults);
