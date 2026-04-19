@@ -269,7 +269,7 @@ if (WORKER_MODE) {
             content: {
               parts: [
                 {
-                  inline_data: {
+                  inlineData: {
                     data: result.image_base64
                   }
                 }
@@ -477,66 +477,36 @@ if (WORKER_MODE) {
     app.post("/api/analyze", async (req, res) => {
       try {
         console.log('=== ANALYZE ENDPOINT HIT ===');
-        console.log('Full body keys:', Object.keys(req.body));
-        console.log('Full body:', JSON.stringify(req.body).substring(0, 500));
-        
         const body = req.body;
         
-        // Extract model from ANY possible location
-        const model = body.model || 
-                      body.config?.model || 
-                      body.generationConfig?.model ||
-                      '';
-        
-        // Define robust intent routing: If the prompt explicitly asks to Analyze, NEVER send it to the Image Generation Worker.
+        // Final routing decision
+        const model = body.model || body.config?.model || body.generationConfig?.model || '';
         const promptTextForCheck = body.prompt || body.contents?.[0]?.parts?.find((p: any) => p.text)?.text || '';
         const isExplicitAnalysisPrompt = typeof promptTextForCheck === 'string' && promptTextForCheck.includes('Analyze this garment');
+        const hasImageModality = body.responseModalities?.includes('IMAGE') || body.config?.responseModalities?.includes('IMAGE');
+        const isImageModel = String(model).toLowerCase().includes('image') || String(model).toLowerCase().includes('flash-image');
         
-        // Check if image generation is needed
-        const hasImageModality = body.responseModalities?.includes('IMAGE') ||
-                                 body.config?.responseModalities?.includes('IMAGE');
-        
-        const isImageModel = String(model).toLowerCase().includes('image') ||
-                             String(model).toLowerCase().includes('flash-image');
-        
-        // Final routing decision
         const isImageRequest = !isExplicitAnalysisPrompt && (isImageModel || hasImageModality);
         
-        console.log('Model:', model);
-        console.log('Is image request:', isImageRequest);
-        console.log('Worker URL:', WORKER_URL);
-        
-        if (isImageRequest && WORKER_URL) {
-          console.log('🔄 FORWARDING TO WORKER');
-          
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 200000);
-          
-          try {
+        if (isImageRequest) {
+          if (hasRedis) {
+            // UNIFIED ROBUST APPROACH: If we have Redis, use the Job Queue even for /analyze requests
+            // This ensures SSE and progress tracking work perfectly.
+            console.log('🔄 QUEUEING GENERATION JOB');
+            const job = await imageQueue.add('generate', body);
+            return res.json({ jobId: job.id, status: 'queued' });
+          } else if (WORKER_URL) {
+            // FALLBACK: Async HTTP forwarder
+            console.log('🔄 FORWARDING TO WORKER (HTTP SYNC)');
             const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
             const workerRes = await fetch(`${formattedUrl}/generate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body),
-              signal: controller.signal,
             });
             
-            clearTimeout(timeout);
-            
-            if (!workerRes.ok) {
-              const errText = await workerRes.text();
-              console.error('Worker returned error:', errText);
-              return res.status(500).json({ error: 'Worker error', details: errText });
-            }
-            
-            const result = await workerRes.json();
-            console.log('✅ Worker response received');
-            return res.json(result);
-            
-          } catch (fetchError: any) {
-            clearTimeout(timeout);
-            console.error('❌ Worker fetch failed:', fetchError.message);
-            return res.status(500).json({ error: 'Worker unreachable', details: fetchError.message });
+            if (!workerRes.ok) throw new Error(await workerRes.text());
+            return res.json(await workerRes.json());
           }
         }
         

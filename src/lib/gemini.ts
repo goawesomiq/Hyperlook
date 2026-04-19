@@ -243,7 +243,24 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         throw new Error(errorMessage);
       }
 
-      const { jobId } = await response.json();
+      const responseData = await response.json();
+
+      // Robust response handling: handle both synchronous and asynchronous responses
+      if (responseData.candidates) {
+        // Direct response (forwarded from web server directly)
+        const parts = responseData.candidates[0]?.content?.parts || [];
+        const imagePart = parts.find((p: any) => p.inlineData || p.inline_data);
+        if (imagePart) {
+          const data = imagePart.inlineData?.data || imagePart.inline_data?.data;
+          return { image_base64: data };
+        }
+        throw new Error("No image data found in synchronous response");
+      }
+
+      const { jobId } = responseData;
+      if (!jobId) {
+        throw new Error("No Job ID or Image data received from server");
+      }
 
       const result = await new Promise<any>((resolve, reject) => {
         const eventSource = new EventSource(`/api/status/${jobId}`);
