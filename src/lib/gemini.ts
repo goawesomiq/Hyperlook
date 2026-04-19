@@ -252,7 +252,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         const imagePart = parts.find((p: any) => p.inlineData || p.inline_data);
         if (imagePart) {
           const data = imagePart.inlineData?.data || imagePart.inline_data?.data;
-          return { image_base64: data };
+          return `data:image/jpeg;base64,${data}`;
         }
         throw new Error("No image data found in synchronous response");
       }
@@ -262,14 +262,15 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         throw new Error("No Job ID or Image data received from server");
       }
 
-      const result = await new Promise<any>((resolve, reject) => {
+      const result = await new Promise<string>((resolve, reject) => {
         const eventSource = new EventSource(`/api/status/${jobId}`);
         eventSource.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
             if (data.state === 'completed') {
               eventSource.close();
-              resolve(data.returnvalue);
+              const b64 = data.returnvalue?.image_base64 || data.returnvalue;
+              resolve(`data:image/jpeg;base64,${b64}`);
             } else if (data.state === 'failed') {
               eventSource.close();
               reject(new Error(data.failedReason || 'Generation failed'));
