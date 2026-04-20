@@ -282,13 +282,21 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
             if (data.state === 'completed') {
               clearTimeout(timeout);
               eventSource.close();
-              const b64Raw = data.returnvalue?.image_base64 || data.returnvalue;
-              if (typeof b64Raw !== 'string' || !b64Raw) {
-                 reject(new Error("Worker returned invalid image data format."));
-                 return;
-              }
-              const b64 = b64Raw.replace(/\s/g, '');
-              resolve(`data:image/jpeg;base64,${b64}`);
+              
+              // Now fetch the actual huge image safely via normal HTTP
+              fetch(`/api/result/${jobId}`)
+                .then(res => res.json())
+                .then(resultData => {
+                  const b64Raw = resultData.returnvalue?.image_base64 || resultData.returnvalue;
+                  if (typeof b64Raw !== 'string' || !b64Raw) {
+                     reject(new Error("Worker returned invalid image data format."));
+                     return;
+                  }
+                  const b64 = b64Raw.replace(/\s/g, '');
+                  resolve(`data:image/jpeg;base64,${b64}`);
+                })
+                .catch(err => reject(new Error("Failed to fetch final image data: " + err.message)));
+              
             } else if (data.state === 'failed') {
               clearTimeout(timeout);
               eventSource.close();

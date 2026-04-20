@@ -398,10 +398,19 @@ if (WORKER_MODE) {
     console.warn("Could not read firebase-applet-config.json");
   }
 
-  const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || "",
-    key_secret: process.env.RAZORPAY_KEY_SECRET || "",
-  });
+  let razorpayInstance: Razorpay | null = null;
+  const getRazorpay = () => {
+    if (!razorpayInstance) {
+      if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+        throw new Error("Razorpay credentials missing from environment variables");
+      }
+      razorpayInstance = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+      });
+    }
+    return razorpayInstance;
+  };
 
   const app = express();
 
@@ -437,6 +446,7 @@ if (WORKER_MODE) {
         };
         
         if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+          const razorpay = getRazorpay();
           const order = await razorpay.orders.create(options);
           res.json(order);
         } else {
@@ -477,9 +487,43 @@ if (WORKER_MODE) {
           const apiKey = process.env.FIREBASE_API_KEY;
           if (projectId && apiKey && userId) {
             try {
+              const { planId, amount } = req.body; // Extract additional details sent from frontend
+              
+              // 1. Update Credits
               await updateUserCredits(projectId, userId, creditsToAdd, apiKey);
+              
+              // 2. Record Payment History
+              const paymentUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/payments?key=${apiKey}`;
+              await fetch(paymentUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  fields: {
+                    userId: { stringValue: userId },
+                    orderId: { stringValue: razorpay_order_id },
+                    paymentId: { stringValue: razorpay_payment_id },
+                    amount: { doubleValue: amount },
+                    creditsAdded: { integerValue: creditsToAdd.toString() },
+                    planId: { stringValue: planId || "credits_topup" },
+                    timestamp: { timestampValue: new Date().toISOString() }
+                  }
+                })
+              });
+
+              // 3. Update User's Active Plan in their profile
+              const userUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users/${userId}?updateMask.fieldPaths=lastPlan&key=${apiKey}`;
+              await fetch(userUrl, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  fields: {
+                    lastPlan: { stringValue: planId || "Basic" }
+                  }
+                })
+              });
+
             } catch (e) {
-              console.error("Failed to update credits in Firestore", e);
+              console.error("Failed to update credits or record payment in Firestore", e);
             }
           }
           res.json({ success: true });
@@ -758,7 +802,6 @@ Return the result in JSON format.`;
       res.write(`data: ${JSON.stringify({ 
         state: initialState, 
         progress: job.progress, 
-        returnvalue: job.returnvalue, 
         failedReason: job.failedReason 
       })}\n\n`);
 
@@ -778,13 +821,12 @@ Return the result in JSON format.`;
 
           const state = await currentJob.getState();
           const progress = currentJob.progress;
-          const returnvalue = currentJob.returnvalue;
           const failedReason = currentJob.failedReason;
           
-          res.write(`data: ${JSON.stringify({ state, progress, returnvalue, failedReason })}\n\n`);
+          res.write(`data: ${JSON.stringify({ state, progress, failedReason })}\n\n`);
           
           if (state === 'completed' || state === 'failed') {
-            console.log(`SSE: Job ${jobId} finished with state: ${state}. Returnvalue exists: ${!!returnvalue}`);
+            console.log(`SSE: Job ${jobId} finished with state: ${state}.`);
             clearInterval(interval);
             res.end();
           }
@@ -799,6 +841,20 @@ Return the result in JSON format.`;
         console.log(`SSE: Connection closed for ${jobId}`);
         clearInterval(interval);
       });
+    });
+
+    app.get('/api/result/:jobId', async (req, res) => {
+      try {
+        const jobId = req.params.jobId;
+        const job = await imageQueue.getJob(jobId);
+        if (!job) {
+          return res.status(404).json({ error: 'Job not found' });
+        }
+        res.json({ returnvalue: job.returnvalue });
+      } catch (error) {
+        console.error("Result fetch error:", error);
+        res.status(500).json({ error: "Failed to fetch job result" });
+      }
     });
 
     // Vite middleware for development

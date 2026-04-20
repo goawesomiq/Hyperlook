@@ -74,32 +74,32 @@ export default function ImageUploader({ onMainImage, onRefImages, mainImage, ref
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div className="space-y-4 max-w-4xl mx-auto w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
         {/* Main Product Image */}
-        <div className="space-y-4">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="block text-lg font-semibold text-slate-800 dark:text-white">
+            <label className="block text-sm md:text-base font-semibold text-slate-800 dark:text-white">
               Main Product Image <span className="text-red-500">*</span>
             </label>
             {onMagicRefChange && (
               <button
                 onClick={() => onMagicRefChange(!isMagicRef)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] md:text-sm font-bold transition-colors ${
                   isMagicRef 
                     ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-900/50" 
                     : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-transparent"
                 }`}
                 title="Use an existing generation to create new poses with 100% consistency"
               >
-                <Star className={`w-4 h-4 ${isMagicRef ? "fill-yellow-500 text-yellow-500" : ""}`} />
+                <Star className={`w-3 h-3 md:w-4 md:h-4 ${isMagicRef ? "fill-yellow-500 text-yellow-500" : ""}`} />
                 Magic Ref
               </button>
             )}
           </div>
           <div
             onClick={() => mainInputRef.current?.click()}
-            className={`relative aspect-square rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center overflow-hidden ${
+            className={`relative w-full h-48 md:h-auto md:aspect-square rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center overflow-hidden ${
               mainImage ? "border-brand-500 bg-brand-50/30 dark:bg-brand-900/10" : "border-slate-300 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
             }`}
           >
@@ -107,35 +107,34 @@ export default function ImageUploader({ onMainImage, onRefImages, mainImage, ref
             {mainImage ? (
               <img src={`data:image/jpeg;base64,${mainImage}`} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
             ) : (
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-brand-100 dark:bg-brand-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Upload className="w-8 h-8 text-brand-600 dark:text-brand-400" />
+              <div className="text-center p-4">
+                <div className="w-10 h-10 md:w-16 md:h-16 bg-brand-100 dark:bg-brand-900/30 rounded-full flex items-center justify-center mx-auto mb-2 md:mb-4">
+                  <Upload className="w-5 h-5 md:w-8 md:h-8 text-brand-600 dark:text-brand-400" />
                 </div>
-                <p className="text-slate-600 dark:text-slate-300 font-medium">Click to upload raw garment image</p>
-                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">PNG, JPG up to 10MB</p>
+                <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-medium">Click to upload raw garment image</p>
+                <p className="text-[10px] md:text-sm text-slate-400 dark:text-slate-500 mt-1">PNG, JPG up to 10MB</p>
               </div>
             )}
             {mainImage && (
               <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                <p className="text-white font-medium">Change Image</p>
+                <p className="text-white text-sm font-medium">Change Image</p>
               </div>
             )}
           </div>
           {isMagicRef && (
-            <p className="text-sm text-yellow-700 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-xl border border-yellow-100 dark:border-yellow-900/40">
-              <Star className="w-4 h-4 inline-block mr-1 mb-0.5" />
-              <strong>Magic Ref Mode:</strong> Upload an existing generation. We will keep the exact model, garment, and background, and only change the pose.
+            <p className="text-[10px] md:text-sm text-yellow-700 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-xl border border-yellow-100 dark:border-yellow-900/40 leading-tight">
+              <Star className="w-3 h-3 inline-block mr-1 mb-0.5" />
+              <strong>Magic Ref Mode:</strong> Upload an existing generation to perfectly match the model and background, changing only the pose.
             </p>
           )}
         </div>
 
         {/* Reference Images */}
-        <div className="space-y-4">
-          <label className="block text-lg font-semibold text-slate-800 dark:text-white">
-            Reference Images (Optional)
-            <span className="block text-sm font-normal text-slate-500 dark:text-slate-400 mt-1">Add more angles or detailing for better results</span>
+        <div className="space-y-2">
+          <label className="block text-sm md:text-base font-semibold text-slate-800 dark:text-white">
+            Reference Images <span className="text-[10px] md:text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">(Optional hooks/angles)</span>
           </label>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-2 gap-2 md:gap-4">
             <AnimatePresence>
               {refImages.map((img, idx) => (
                 <motion.div
@@ -163,8 +162,8 @@ export default function ImageUploader({ onMainImage, onRefImages, mainImage, ref
                 onClick={() => refInputRef.current?.click()}
                 className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-slate-50 dark:hover:bg-slate-800/50 flex flex-col items-center justify-center transition-all group"
               >
-                <Plus className="w-8 h-8 text-slate-400 dark:text-slate-500 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors" />
-                <span className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Add More</span>
+                <Plus className="w-6 h-6 md:w-8 md:h-8 text-slate-400 dark:text-slate-500 group-hover:text-brand-500 dark:group-hover:text-brand-400 transition-colors" />
+                <span className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 mt-1 md:mt-2 font-medium">Add More</span>
                 <input type="file" ref={refInputRef} onChange={onRefChange} accept="image/*" multiple className="hidden" />
               </button>
             )}

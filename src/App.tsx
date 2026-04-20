@@ -93,6 +93,7 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [credits, setCredits] = useState<number>(0);
   const [showPricing, setShowPricing] = useState(false);
+  const [lastWorkspacePage, setLastWorkspacePage] = useState<Page>("studio");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -313,6 +314,14 @@ export default function App() {
 
   const handleGenerate = async () => {
     if (!mainImage || isProcessing) return;
+
+    // Strict Coin Validation
+    const requiredCredits = config.poses.length || 1;
+    if (credits < requiredCredits) {
+      setError("Insufficient coins. Please select a plan to continue generating.");
+      setShowPricing(true);
+      return;
+    }
     
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
       Notification.requestPermission();
@@ -521,6 +530,7 @@ export default function App() {
     setError(null);
     setProgress(0);
     setIsProcessing(false);
+    setLastWorkspacePage("studio");
   };
 
   useEffect(() => {
@@ -529,27 +539,29 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
+    // Track the last workspace-related page
+    if (activePage === "studio" || activePage === "garment-studio" || activePage === "workspace") {
+      setLastWorkspacePage(activePage);
+    }
   }, [currentStep, activePage]);
 
   const renderStudio = () => (
-    <div className="space-y-16">
-      <div id="studio-workflow" className="space-y-12">
-        <div className="flex flex-col items-center text-center space-y-2">
-          <h3 className="text-2xl md:text-3xl font-bold text-slate-800">Photoshoot Workflow</h3>
-          <p className="text-slate-500 font-medium">Follow the steps below to create your masterpiece</p>
-          <div className="w-12 h-1 bg-brand-200 rounded-full mt-4" />
+    <div className="space-y-6 md:space-y-12">
+      <div id="studio-workflow" className="space-y-6">
+        <div className="flex flex-col items-center text-center space-y-2 hidden md:flex">
+          <h3 className="text-2xl font-bold text-slate-800">Photoshoot Workflow</h3>
+          <p className="text-sm text-slate-500 font-medium">Follow the steps below to create your masterpiece</p>
+          <div className="w-12 h-1 bg-brand-200 rounded-full mt-2" />
         </div>
-
-        <StepIndicator currentStep={currentStep} steps={STEPS} />
 
       <AnimatePresence mode="wait">
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl mx-auto mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-700"
+            className="max-w-2xl mx-auto mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-700 text-sm"
           >
-            <AlertCircle className="w-5 h-5 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <p className="font-medium">{error}</p>
             <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
               &times;
@@ -563,13 +575,13 @@ export default function App() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-12"
+            className="space-y-8"
           >
-            <div className="text-center space-y-4 max-w-2xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-serif font-bold text-slate-900 leading-tight">
+            <div className="text-center space-y-2 max-w-2xl mx-auto">
+              <h2 className="text-2xl md:text-4xl font-serif font-bold text-slate-900 leading-tight">
                 Upload Your <span className="gradient-text italic">Garment</span>
               </h2>
-              <p className="text-lg text-slate-500">
+              <p className="text-sm md:text-base text-slate-500">
                 Start by uploading a clear, raw image of your product.
               </p>
             </div>
@@ -593,7 +605,7 @@ export default function App() {
                     handleAnalyze();
                   }
                 }}
-                className={`px-12 py-4 rounded-full font-bold text-lg transition-all flex items-center gap-3 shadow-xl ${
+                className={`px-8 py-3 md:px-12 md:py-4 rounded-full font-bold text-sm md:text-lg transition-all flex items-center gap-2 md:gap-3 shadow-xl ${
                   mainImage && !isProcessing
                     ? "bg-brand-600 text-white hover:bg-brand-700 hover:scale-105 shadow-brand-200"
                     : "bg-slate-200 text-slate-400 cursor-not-allowed"
@@ -601,13 +613,13 @@ export default function App() {
               >
                 {isProcessing ? (
                   <>
-                    <RefreshCw className="w-6 h-6 animate-spin" />
+                    <RefreshCw className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
                     Processing...
                   </>
                 ) : (
                   <>
                     {config.isMagicRef ? "Configure Magic Reference" : "Analyze Garment"}
-                    <ArrowRight className="w-6 h-6" />
+                    <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
                   </>
                 )}
               </button>
@@ -741,32 +753,24 @@ export default function App() {
             </button>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             {user && (
               <button 
                 onClick={() => setShowPricing(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-sm border border-amber-200 dark:border-amber-800/50 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-xs border border-amber-200 dark:border-amber-800/50 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors mr-1"
               >
-                <Crown className="w-4 h-4" />
-                {credits} Coins
+                <Crown className="w-3.5 h-3.5" />
+                {credits}
               </button>
             )}
             <button 
               onClick={toggleDarkMode}
-              className="w-10 h-10 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors"
+              className="w-9 h-9 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors"
             >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {isDarkMode ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
             </button>
-            {showInstallPrompt && (
-              <button 
-                onClick={handleInstallClick}
-                className="px-4 py-2 bg-brand-600 text-white text-sm font-bold rounded-full shadow-md flex items-center gap-2 hover:bg-brand-700 transition-all"
-              >
-                <Download className="w-4 h-4" /> Install App
-              </button>
-            )}
-            <div className="w-10 h-10 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400">
-              <User className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400">
+              <User className="w-4.5 h-4.5" />
             </div>
           </div>
         </div>
@@ -789,12 +793,13 @@ export default function App() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {showInstallPrompt && (
+          {user && (
             <button 
-              onClick={handleInstallClick}
-              className="px-3 py-1.5 bg-brand-600 text-white text-xs font-bold rounded-full shadow-md flex items-center gap-1"
+              onClick={() => setShowPricing(true)}
+              className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-[10px] border border-amber-200 dark:border-amber-800/50 mr-1"
             >
-              <Download className="w-3 h-3" /> Install App
+              <Crown className="w-3 h-3" />
+              {credits}
             </button>
           )}
           <button onClick={toggleDarkMode} className="w-8 h-8 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-600 dark:text-brand-400">
@@ -803,7 +808,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 py-8 pb-32">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-4 md:py-8 pb-32">
         <AnimatePresence mode="wait">
           {activePage === "home" && (
             <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -852,7 +857,7 @@ export default function App() {
           )}
           {activePage === "account" && (
             <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Account onNavigate={setActivePage} onShowPricing={() => setShowPricing(true)} />
+              <Account onNavigate={setActivePage} onShowPricing={() => setShowPricing(true)} credits={credits} />
             </motion.div>
           )}
           {activePage === "admin" && (
@@ -873,8 +878,8 @@ export default function App() {
           <span className="text-[10px] font-bold uppercase tracking-wider">Home</span>
         </button>
         <button 
-          onClick={() => setActivePage("workspace")}
-          className={`flex flex-col items-center gap-1 transition-colors relative ${activePage === "workspace" ? "text-brand-600" : "text-slate-400"}`}
+          onClick={() => setActivePage(lastWorkspacePage)}
+          className={`flex flex-col items-center gap-1 transition-colors relative ${ (activePage === "workspace" || activePage === "studio" || activePage === "garment-studio") ? "text-brand-600" : "text-slate-400"}`}
         >
           <Wand2 className="w-6 h-6" />
           {isProcessing && (
@@ -900,6 +905,22 @@ export default function App() {
           <span className="text-[10px] font-bold uppercase tracking-wider">Account</span>
         </button>
       </nav>
+
+      {/* Floating Step Indicator (Visible during generation setup) */}
+      <AnimatePresence>
+        {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && currentStep < 3 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-20 md:bottom-6 left-0 right-0 z-40 pointer-events-none px-4"
+          >
+            <div className="max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-full border border-slate-100 dark:border-slate-800 p-2 pointer-events-auto">
+              <StepIndicator currentStep={currentStep} steps={STEPS} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Desktop Footer */}
       <footer className="bg-white dark:bg-slate-900 border-t border-brand-50 dark:border-slate-800 py-12 hidden md:block">
