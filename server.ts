@@ -399,8 +399,8 @@ if (WORKER_MODE) {
   }
 
   const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_mock",
-    key_secret: process.env.RAZORPAY_KEY_SECRET || "mock_secret",
+    key_id: process.env.RAZORPAY_KEY_ID || "",
+    key_secret: process.env.RAZORPAY_KEY_SECRET || "",
   });
 
   const app = express();
@@ -414,20 +414,34 @@ if (WORKER_MODE) {
       res.json({ status: "ok" });
     });
 
+    app.get("/api/config", (req, res) => {
+      res.json({
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID || "rzp_test_mock"
+      });
+    });
+
     app.post("/api/create-order", async (req, res) => {
       try {
-        const { amount, currency = "INR" } = req.body;
+        const { planId, amount, currency = "INR" } = req.body;
+        
+        // Final verification of amount on server side
+        // In a real app, you'd fetch the price from a database based on planId
+        
         const options = {
-          amount: amount * 100, // amount in smallest currency unit
+          amount: Math.round(amount * 100), // amount in smallest currency unit
           currency,
           receipt: `receipt_${Date.now()}`,
+          notes: {
+            planId
+          }
         };
         
-        if (process.env.RAZORPAY_KEY_ID) {
+        if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
           const order = await razorpay.orders.create(options);
           res.json(order);
         } else {
           // Mock order for preview environment
+          console.log("RAZORPAY_KEY_ID not found, returning mock order");
           res.json({
             id: `order_mock_${Date.now()}`,
             amount: options.amount,
@@ -435,7 +449,7 @@ if (WORKER_MODE) {
           });
         }
       } catch (error) {
-        console.error(error);
+        console.error("Create Order Error:", error);
         res.status(500).json({ error: "Failed to create order" });
       }
     });

@@ -72,11 +72,15 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
 
     setLoadingPlan(plan.id);
     try {
+      // 0. Get Config
+      const configRes = await fetch('/api/config');
+      const { razorpayKeyId } = await configRes.json();
+
       // 1. Create order on backend
       const orderRes = await fetch('/api/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: plan.price, currency: 'INR' })
+        body: JSON.stringify({ planId: plan.id, amount: plan.price, currency: 'INR' })
       });
       
       const orderData = await orderRes.json();
@@ -85,7 +89,7 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
 
       // 2. Open Razorpay Checkout
       const options = {
-        key: "rzp_test_mock", // In production, this should be fetched from backend or env
+        key: razorpayKeyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Hyperlook AI",

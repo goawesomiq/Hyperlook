@@ -852,7 +852,7 @@ export default function App() {
           )}
           {activePage === "account" && (
             <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Account onNavigate={setActivePage} />
+              <Account onNavigate={setActivePage} onShowPricing={() => setShowPricing(true)} />
             </motion.div>
           )}
           {activePage === "admin" && (

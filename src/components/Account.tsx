@@ -6,7 +6,7 @@ import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User 
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 
-export default function Account({ onNavigate }: { onNavigate: (page: any) => void }) {
+export default function Account({ onNavigate, onShowPricing }: { onNavigate: (page: any) => void, onShowPricing: () => void }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [showPolicies, setShowPolicies] = useState(false);
 
@@ -46,9 +46,9 @@ export default function Account({ onNavigate }: { onNavigate: (page: any) => voi
   };
 
   const plans = [
-    { name: "Basic", credits: 50, price: "$9", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
-    { name: "Standard", credits: 100, price: "$15", color: "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300", popular: true },
-    { name: "Plus", credits: 250, price: "$29", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" },
+    { name: "Basic", credits: 40, price: "₹799", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
+    { name: "Plus", credits: 100, price: "₹1749", color: "bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300", popular: true },
+    { name: "Pro", credits: 250, price: "₹3499", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" },
   ];
 
   if (!user) {
@@ -115,8 +115,11 @@ export default function Account({ onNavigate }: { onNavigate: (page: any) => voi
               <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{plan.name}</h4>
               <div className={`text-xl font-black mb-1 ${plan.color.split(' ')[1]}`}>{plan.credits}</div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Credits</div>
-              <button className={`w-full py-1.5 rounded-full text-xs font-bold ${plan.color}`}>
-                {plan.price} / mo
+              <button 
+                onClick={onShowPricing}
+                className={`w-full py-1.5 rounded-full text-xs font-bold ${plan.color}`}
+              >
+                Buy Now
               </button>
             </div>
           ))}
