@@ -315,9 +315,10 @@ export default function App() {
   const handleGenerate = async () => {
     if (!mainImage || isProcessing) return;
 
-    // Strict Coin Validation
+    // Strict Coin Validation (Bypass for admin)
+    const isAdmin = user?.email === "goawesomiq@gmail.com";
     const requiredCredits = config.poses.length || 1;
-    if (credits < requiredCredits) {
+    if (!isAdmin && credits < requiredCredits) {
       setError("Insufficient coins. Please select a plan to continue generating.");
       setShowPricing(true);
       return;
@@ -799,7 +800,7 @@ export default function App() {
               className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-[10px] border border-amber-200 dark:border-amber-800/50 mr-1"
             >
               <Crown className="w-3 h-3" />
-              {credits}
+              {user.email === "goawesomiq@gmail.com" ? "∞" : credits}
             </button>
           )}
           <button onClick={toggleDarkMode} className="w-8 h-8 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-600 dark:text-brand-400">

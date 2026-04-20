@@ -65,15 +65,29 @@ export default function Account({ onNavigate, onShowPricing, credits }: { onNavi
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Save user to Firestore
+      // Save user to Firestore if not exist
       if (result.user) {
-        await setDoc(doc(db, "users", result.user.uid), {
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          photoURL: result.user.photoURL,
-          createdAt: serverTimestamp()
-        }, { merge: true });
+        const userRef = doc(db, "users", result.user.uid);
+        const userDoc = await getDoc(userRef);
+        
+        if (!userDoc.exists()) {
+          // Grant 5 free coins to newly registered users
+          await setDoc(userRef, {
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+            createdAt: serverTimestamp(),
+            credits: 5,
+            lastPlan: "Starter (Free)"
+          });
+        } else {
+          // Just update profile data on successive logins without touching coins
+          await setDoc(userRef, {
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+          }, { merge: true });
+        }
       }
     } catch (error) {
       console.error("Login failed", error);
@@ -140,10 +154,12 @@ export default function Account({ onNavigate, onShowPricing, credits }: { onNavi
           <div className="flex items-center gap-3 mt-1 text-[11px] font-bold">
             <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
               <Crown className="w-3 h-3" />
-              {credits} Coins
+              {user.email === "goawesomiq@gmail.com" ? "Unlimited ∞" : `${credits} Coins`}
             </div>
             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-            <span className="text-brand-600 dark:text-brand-400 uppercase tracking-widest">{activePlan}</span>
+            <span className="text-brand-600 dark:text-brand-400 uppercase tracking-widest">
+              {user.email === "goawesomiq@gmail.com" ? "Platinum" : activePlan}
+            </span>
           </div>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1 uppercase tracking-wider">{user.email}</p>
         </div>

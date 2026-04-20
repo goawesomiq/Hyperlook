@@ -483,8 +483,8 @@ if (WORKER_MODE) {
         }
 
         if (isValid) {
-          const projectId = process.env.FIREBASE_PROJECT_ID;
-          const apiKey = process.env.FIREBASE_API_KEY;
+          const projectId = process.env.FIREBASE_PROJECT_ID || firebaseConfig?.projectId;
+          const apiKey = process.env.FIREBASE_API_KEY || firebaseConfig?.apiKey;
           if (projectId && apiKey && userId) {
             try {
               const { planId, amount } = req.body; // Extract additional details sent from frontend

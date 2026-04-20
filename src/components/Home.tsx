@@ -71,11 +71,11 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
   }, [banners]);
 
   return (
-    <div className="space-y-16 pb-24">
+    <div className="space-y-6 md:space-y-12 pb-24">
       {/* Dynamic Banners */}
       {banners && banners.length > 0 && (
-        <section className="pt-4">
-          <div className="relative w-full rounded-3xl overflow-hidden shadow-xl aspect-[21/9] md:aspect-[32/9]">
+        <section className="pt-2 md:pt-4">
+          <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-xl aspect-[21/9] md:aspect-[32/9]">
             <motion.img 
               key={currentBanner}
               initial={{ opacity: 0 }}
@@ -87,11 +87,11 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
               className="w-full h-full object-cover absolute inset-0"
             />
             {banners.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+              <div className="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 md:gap-2 z-10">
                 {banners.map((_, idx) => (
                   <div 
                     key={idx} 
-                    className={`w-2 h-2 rounded-full transition-all ${idx === currentBanner ? "bg-white w-6" : "bg-white/50"}`}
+                    className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full transition-all ${idx === currentBanner ? "bg-white w-4 md:w-6" : "bg-white/50"}`}
                   />
                 ))}
               </div>
@@ -101,17 +101,17 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
       )}
 
       {/* Hero Section */}
-      <section className="text-center space-y-6 pt-8">
+      <section className="text-center space-y-3 md:space-y-6 pt-2 md:pt-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="inline-flex items-center gap-2 px-6 py-2 bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 rounded-full text-sm font-bold border border-brand-100 dark:border-slate-700 shadow-sm"
+          className="inline-flex items-center gap-1.5 md:gap-2 px-4 py-1.5 md:px-6 md:py-2 bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 rounded-full text-[10px] md:text-sm font-bold border border-brand-100 dark:border-slate-700 shadow-sm"
         >
           <motion.img 
             src={logo || "/logo.png"} 
             onError={(e) => e.currentTarget.src = '/logo.png'}
             alt="Hyperlook AI" 
-            className="w-5 h-5 object-contain"
+            className="w-3 h-3 md:w-5 md:h-5 object-contain"
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
           />
@@ -121,9 +121,9 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-5xl md:text-7xl font-serif font-bold text-slate-900 dark:text-white leading-tight"
+          className="text-3xl md:text-7xl font-serif font-bold text-slate-900 dark:text-white leading-tight"
         >
-          Choose Your <br />
+          Choose Your <br className="hidden md:block"/>
           <span className="gradient-text italic">Product Studio</span>
         </motion.h1>
         
@@ -131,7 +131,7 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
+          className="text-sm md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-4 md:px-0"
         >
           Select a specialized AI studio to create professional, high-fidelity photoshoots for your brand.
         </motion.p>
@@ -197,21 +197,23 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
       </section>
 
       {/* Bottom Info */}
-      <section className="text-center pt-12">
-        <div className="inline-flex items-center gap-8 p-8 glass-panel rounded-[2.5rem] max-w-4xl mx-auto">
-          <div className="hidden md:flex -space-x-4">
-            {[1, 2, 3, 4].map((i) => (
-              <img 
-                key={i}
-                src={`https://picsum.photos/seed/user${i}/100/100`} 
-                className="w-12 h-12 rounded-full border-4 border-white dark:border-slate-800 shadow-sm"
-                referrerPolicy="no-referrer"
-              />
-            ))}
-          </div>
-          <div className="text-left">
-            <p className="font-bold text-slate-800 dark:text-white">Trusted by 10,000+ Fashion Brands</p>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">Generating 50,000+ photoshoots daily with 99% satisfaction.</p>
+      <section className="text-center pt-6 md:pt-12">
+        <div className="inline-flex flex-col md:flex-row items-center gap-4 md:gap-8 p-4 md:p-8 glass-panel rounded-3xl md:rounded-[2.5rem] max-w-4xl mx-auto">
+          <div className="flex text-left items-center md:items-start gap-4">
+            <div className="flex -space-x-2 md:-space-x-4">
+              {[1, 2, 3, 4].map((i) => (
+                <img 
+                  key={i}
+                  src={`https://picsum.photos/seed/user${i}/100/100`} 
+                  className="w-8 h-8 md:w-12 md:h-12 rounded-full border-2 md:border-4 border-white dark:border-slate-800 shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
+              ))}
+            </div>
+            <div>
+              <p className="text-sm md:text-base font-bold text-slate-800 dark:text-white">Trusted by 10,000+ Fashion Brands</p>
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Generating 50,000+ photoshoots daily with 99% satisfaction.</p>
+            </div>
           </div>
         </div>
       </section>
