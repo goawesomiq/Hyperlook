@@ -28,7 +28,7 @@ Return the result in JSON format.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gemini-3.1-flash-preview',
+          model: 'gemini-3-flash-preview',
           image: base64Image,
           base64Image: base64Image,
           prompt: prompt,
@@ -277,7 +277,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           userId: auth.currentUser?.uid || "anonymous",
           userEmail: auth.currentUser?.email || "",
           prompt: finalPrompt,
-          model: "gemini-3.1-flash-preview",
+          model: "gemini-3-flash-preview",
           image: mainImageBase64,
           base64Image: mainImageBase64,
           referenceImagesBase64: allReferenceImages,

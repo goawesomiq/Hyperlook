@@ -155,7 +155,7 @@ async function processPhotoshootJob(job: any) {
   if (job.updateProgress) await job.updateProgress(10);
 
   console.log('GENERATE: Request body:', JSON.stringify({
-    model: 'gemini-3.1-flash-preview',
+    model: 'gemini-3-flash-preview',
     hasImage: !!mainImageBase64,
     promptLength: prompt?.length,
     responseModalities: ['IMAGE', 'TEXT']
@@ -166,7 +166,7 @@ async function processPhotoshootJob(job: any) {
   console.log('GENERATE: Waiting for response...');
 
   const responseData = await callGeminiWithRetry(
-    'gemini-3.1-flash-preview',
+    'gemini-3-flash-preview',
     requestBody,
     180000 // 180 seconds
   );
@@ -769,7 +769,7 @@ Return the result in JSON format.`;
 
         try {
           const responseData = await callGeminiWithRetry(
-            'gemini-3.1-flash-preview',
+            'gemini-3-flash-preview',
             requestBody,
             120000 // 120 seconds
           );

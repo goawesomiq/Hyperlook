@@ -9,8 +9,8 @@ interface StepIndicatorProps {
 
 export default function StepIndicator({ currentStep, steps, progress }: StepIndicatorProps) {
   return (
-    <div className="flex flex-col items-center w-full max-w-sm mx-auto py-2">
-      <div className="flex items-center justify-center w-full px-4 mb-2">
+    <div className="flex flex-col items-center w-full max-w-sm mx-auto py-0">
+      <div className="flex items-center justify-center w-full px-4 mb-1">
         {steps.map((step, index) => (
           <div key={step} className="flex items-center flex-1 last:flex-none">
             <div className="relative flex items-center justify-center">
@@ -29,7 +29,7 @@ export default function StepIndicator({ currentStep, steps, progress }: StepIndi
                 )}
               </motion.div>
               <span
-                className={`absolute -bottom-4 text-[8px] md:text-xs font-semibold whitespace-nowrap transition-colors duration-300 ${
+                className={`absolute -bottom-3.5 text-[8px] md:text-xs font-semibold whitespace-nowrap transition-colors duration-300 ${
                   index <= currentStep ? "text-brand-700 dark:text-brand-400" : "text-slate-400 dark:text-slate-500"
                 }`}
               >
@@ -53,7 +53,7 @@ export default function StepIndicator({ currentStep, steps, progress }: StepIndi
         <motion.div 
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-[10px] font-bold text-brand-600 flex items-center gap-1.5 mt-2"
+          className="text-[10px] font-bold text-brand-600 flex items-center gap-1.5 mt-1"
         >
           <div className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse" />
           <span>{Math.round(progress)}% Progress</span>

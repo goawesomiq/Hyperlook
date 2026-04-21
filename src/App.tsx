@@ -868,7 +868,7 @@ export default function App() {
       </main>
 
       {/* Mobile Nav Bar */}
-      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-300 ${ (activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) ? "pt-6" : ""}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-300 ${ (activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) ? "pt-2" : ""}`}>
         <AnimatePresence>
           {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && (
             <motion.div 
@@ -877,7 +877,7 @@ export default function App() {
               exit={{ height: 0, opacity: 0 }}
               className="w-full overflow-hidden"
             >
-              <div className="px-4 py-2">
+              <div className="px-2 pt-2 pb-4">
                 <StepIndicator 
                   currentStep={currentStep} 
                   steps={STEPS} 
@@ -935,7 +935,7 @@ export default function App() {
             exit={{ y: 100, opacity: 0 }}
             className="fixed bottom-6 left-0 right-0 z-40 pointer-events-none px-4 hidden md:block"
           >
-            <div className="max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-full border border-slate-100 dark:border-slate-800 p-2 pointer-events-auto">
+            <div className="max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-[2rem] border border-slate-100 dark:border-slate-800 pt-2 px-4 pb-4 pointer-events-auto">
               <StepIndicator 
                 currentStep={currentStep} 
                 steps={STEPS} 
