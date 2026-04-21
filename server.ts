@@ -31,9 +31,7 @@ async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: n
       const response = await ai.models.generateContent({
         model: model,
         contents: requestBody.contents,
-        config: requestBody.generationConfig || Object.assign(requestBody.config || {}, {
-          responseModalities: ["IMAGE", "TEXT"]
-        })
+        config: requestBody.generationConfig
       });
       
       return response;
@@ -144,21 +142,23 @@ async function processPhotoshootJob(job: any) {
       }
     ],
     generationConfig: {
-      responseModalities: ['IMAGE', 'TEXT'],
+      imageConfig: {
+        aspectRatio: aspectRatio || "1:1",
+        imageSize: "1K"
+      },
       temperature: 1,
       topP: 0.95,
       topK: 40,
-      maxOutputTokens: 8192,
     }
   };
 
   if (job.updateProgress) await job.updateProgress(10);
 
   console.log('GENERATE: Request body:', JSON.stringify({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-3.1-flash-image-preview',
     hasImage: !!mainImageBase64,
     promptLength: prompt?.length,
-    responseModalities: ['IMAGE', 'TEXT']
+    quality: quality
   }));
 
   console.log('GENERATE: Calling Gemini API');
@@ -166,7 +166,7 @@ async function processPhotoshootJob(job: any) {
   console.log('GENERATE: Waiting for response...');
 
   const responseData = await callGeminiWithRetry(
-    'gemini-3-flash-preview',
+    'gemini-3.1-flash-image-preview',
     requestBody,
     180000 // 180 seconds
   );

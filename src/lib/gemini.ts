@@ -283,7 +283,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           referenceImagesBase64: allReferenceImages,
           aspectRatio,
           quality,
-          response_modalities: ["IMAGE", "TEXT"]
+          responseModalities: ["IMAGE"]
         }),
       });
 
