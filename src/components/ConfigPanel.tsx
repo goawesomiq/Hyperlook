@@ -199,37 +199,6 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
         </div>
       </section>
 
-      {/* Quality Selection */}
-      <section className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-brand-100 dark:bg-brand-900/30 rounded-xl flex items-center justify-center">
-            <Zap className="w-5 h-5 text-brand-600 dark:text-brand-400" />
-          </div>
-          <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Choose Quality</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-          {QUALITY_OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => onChange("quality", opt.id)}
-              className={`p-4 md:p-6 rounded-2xl border-2 text-left transition-all duration-300 group relative overflow-hidden ${
-                config.quality === opt.id
-                  ? "border-brand-600 bg-brand-50/50 dark:bg-brand-900/20 ring-4 ring-brand-100 dark:ring-brand-900/40"
-                  : "border-slate-200 dark:border-slate-700 hover:border-brand-300 dark:hover:border-brand-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1 md:mb-2">
-                <span className={`font-bold text-base md:text-lg ${config.quality === opt.id ? "text-brand-700 dark:text-brand-400" : "text-slate-700 dark:text-slate-300"}`}>
-                  {opt.label}
-                </span>
-                {config.quality === opt.id && <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6 text-brand-600 dark:text-brand-400" />}
-              </div>
-              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{opt.desc}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
       <div className="bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-900/40 rounded-2xl p-6 flex items-start gap-4">
         <Info className="w-6 h-6 text-brand-600 dark:text-brand-400 shrink-0 mt-1" />
         <p className="text-brand-800 dark:text-brand-200 text-sm leading-relaxed">

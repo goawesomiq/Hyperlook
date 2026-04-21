@@ -1,6 +1,6 @@
-import React from "react";
-import { motion } from "motion/react";
-import { Download, RefreshCcw, LayoutGrid, ArrowLeft, CheckCircle, PlusCircle, Wand2 } from "lucide-react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Download, RefreshCcw, LayoutGrid, ArrowLeft, CheckCircle, PlusCircle, Wand2, Crown } from "lucide-react";
 
 interface ResultGalleryProps {
   images: string[];
@@ -16,9 +16,23 @@ interface ResultGalleryProps {
 }
 
 export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNewInput, onAddMorePoses, isGenerating, progress = 0, aspectRatio = "1:1", generatingIndex = null, logo }: ResultGalleryProps) {
-  const downloadImage = (dataUrl: string, index: number) => {
+  const [processingHighRes, setProcessingHighRes] = useState<{ [index: number]: '2k' | '4k' | null }>({});
+  const [highResUrls, setHighResUrls] = useState<{ [index: number]: { '2k'?: string, '4k'?: string } }>({});
+
+  const downloadImage = (dataUrl: string, index: number, isHighRes: boolean = false, type: '1k' | '2k' | '4k' = '1k') => {
     try {
-      // Split the data URL to get the content type and base64 data
+      if (isHighRes && !dataUrl.startsWith('data:')) {
+        // Direct download for premium if it's a URL (mocked as dataUrl for now)
+        const link = document.createElement("a");
+        link.href = dataUrl;
+        link.download = `photoshoot-${type}-result-${index + 1}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        return;
+      }
+
+      // Existing 1K/data URL logic
       const parts = dataUrl.split(',');
       if (parts.length !== 2) throw new Error("Invalid image data");
       
@@ -44,26 +58,43 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
       
       const link = document.createElement("a");
       link.href = blobUrl;
-      link.download = `photoshoot-result-${index + 1}.jpg`;
+      link.download = `photoshoot-${type}-result-${index + 1}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       
-      // Clean up the object URL
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     } catch (e) {
       console.error("Download failed:", e);
-      // Fallback to direct href if blob conversion fails
       const link = document.createElement("a");
       link.href = dataUrl;
-      link.download = `photoshoot-result-${index + 1}.jpg`;
+      link.download = `photoshoot-${type}-result-${index + 1}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     }
   };
 
-  // Map aspect ratio string to Tailwind classes
+  const handleRequestHighRes = (index: number, quality: '2k' | '4k') => {
+    if (processingHighRes[index]) return;
+    
+    // Set processing state
+    setProcessingHighRes(prev => ({ ...prev, [index]: quality }));
+
+    // Mock processing delay (e.g., 8 seconds)
+    setTimeout(() => {
+      // Set the mock URL (in phase 3, this will be real Firebase URL)
+      setHighResUrls(prev => ({
+        ...prev,
+        [index]: {
+          ...prev[index],
+          [quality]: images[index] // Using the 1K image as placeholder layout
+        }
+      }));
+      setProcessingHighRes(prev => ({ ...prev, [index]: null }));
+    }, 8000);
+  };
+
   const getAspectRatioClass = (ratio: string) => {
     switch (ratio) {
       case "3:4": return "aspect-[3/4]";
@@ -100,11 +131,11 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
             Generated Photoshoot
             <CheckCircle className="w-8 h-8 text-green-500" />
           </h3>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Your professional photoshoot is ready for download.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Your professional photoshoot is ready. Upgrade to 4K Masterpiece for highest fidelity.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         {isGenerating && generatingIndex === null ? (
           <div className="col-span-full flex flex-col items-center justify-center py-20 space-y-6">
             <div className="relative">
@@ -132,37 +163,97 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1 }}
-              className={`group relative ${getAspectRatioClass(aspectRatio)} rounded-3xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-700`}
+              className="flex flex-col gap-4"
             >
-              {isGenerating && generatingIndex === idx ? (
-                <div className="absolute inset-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-4 z-10">
-                  <div className="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin" />
-                  <p className="text-sm font-bold text-brand-600 dark:text-brand-400">Regenerating...</p>
-                </div>
-              ) : (
-                <>
-                  <img src={img} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                    <button
-                      onClick={() => downloadImage(img, idx)}
-                      className="w-14 h-14 bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-xl"
-                      title="Download Image"
-                    >
-                      <Download className="w-6 h-6" />
-                    </button>
-                    <button
-                      onClick={() => onTryDifferent(idx)}
-                      className="w-14 h-14 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-xl"
-                      title="Regenerate This Image"
-                    >
-                      <RefreshCcw className="w-6 h-6" />
-                    </button>
+              <div className={`group relative ${getAspectRatioClass(aspectRatio)} rounded-3xl overflow-hidden shadow-2xl border border-slate-100 dark:border-slate-700`}>
+                {isGenerating && generatingIndex === idx ? (
+                  <div className="absolute inset-0 bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center space-y-4 z-10">
+                    <div className="w-12 h-12 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin" />
+                    <p className="text-sm font-bold text-brand-600 dark:text-brand-400">Regenerating...</p>
                   </div>
-                  <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-brand-700 dark:text-brand-400 shadow-lg">
-                    {idx === 0 ? "PRIMARY POSE" : `POSE ${idx + 1}`}
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <img src={img} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-brand-700 dark:text-brand-400 shadow-lg">
+                      {idx === 0 ? "PRIMARY POSE" : `POSE ${idx + 1}`}
+                    </div>
+
+                    <AnimatePresence>
+                      {processingHighRes[idx] && (
+                        <motion.div 
+                          initial={{ opacity: 0 }} 
+                          animate={{ opacity: 1 }} 
+                          exit={{ opacity: 0 }} 
+                          className="absolute inset-0 bg-slate-900/40 backdrop-blur-md flex flex-col items-center justify-center space-y-4 z-20"
+                        >
+                          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                          <p className="text-white font-bold tracking-widest text-sm uppercase">Adding high-fashion details...</p>
+                          <p className="text-white/80 text-xs">Processing {processingHighRes[idx]?.toUpperCase()}</p>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
+              </div>
+
+              {/* Advanced Action Bar */}
+              <div className="grid grid-cols-4 gap-2 pt-2">
+                <button
+                  onClick={() => onTryDifferent(idx)}
+                  disabled={!!processingHighRes[idx]}
+                  className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 rounded-2xl bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+                >
+                  <RefreshCcw className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400">Try Different</span>
+                </button>
+
+                <button
+                  onClick={() => downloadImage(img, idx, false, '1k')}
+                  disabled={!!processingHighRes[idx]}
+                  className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 rounded-2xl bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 border border-brand-100 dark:border-brand-800/50 transition-colors disabled:opacity-50"
+                >
+                  <Download className="w-5 h-5 text-brand-600 dark:text-brand-400" />
+                  <span className="text-[10px] font-bold text-brand-700 dark:text-brand-400">Download This</span>
+                </button>
+
+                {highResUrls[idx]?.['2k'] ? (
+                  <button
+                    onClick={() => downloadImage(highResUrls[idx]['2k']!, idx, true, '2k')}
+                    className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/50 transition-colors"
+                  >
+                    <Download className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Save 2K</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleRequestHighRes(idx, '2k')}
+                    disabled={!!processingHighRes[idx]}
+                    className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 rounded-2xl bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 hover:from-slate-200 hover:to-slate-300 dark:hover:from-slate-700 dark:hover:to-slate-800 border border-slate-300 dark:border-slate-700 transition-colors disabled:opacity-50"
+                  >
+                    <Sparkles className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                    <span className="text-[10px] font-bold text-slate-800 dark:text-white">Req. 2K</span>
+                  </button>
+                )}
+
+                {highResUrls[idx]?.['4k'] ? (
+                  <button
+                    onClick={() => downloadImage(highResUrls[idx]['4k']!, idx, true, '4k')}
+                    className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/50 transition-colors"
+                  >
+                    <Download className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400">Save 4K</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleRequestHighRes(idx, '4k')}
+                    disabled={!!processingHighRes[idx]}
+                    className="flex flex-col items-center justify-center gap-1.5 py-2.5 px-1 rounded-2xl bg-gradient-to-b from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-900/60 hover:from-amber-200 hover:to-amber-300 border border-amber-300 dark:border-amber-700 transition-colors disabled:opacity-50"
+                  >
+                    <Crown className="w-5 h-5 text-amber-700 dark:text-amber-400" />
+                    <span className="text-[10px] font-bold text-amber-800 dark:text-amber-200 drop-shadow-sm">Req. 4K</span>
+                  </button>
+                )}
+              </div>
             </motion.div>
           ))
         )}

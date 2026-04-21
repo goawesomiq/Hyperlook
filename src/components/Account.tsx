@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { User, CreditCard, ShieldCheck, LogOut, ChevronRight, Settings, Bell, HelpCircle, Check, X } from "lucide-react";
+import { User, CreditCard, ShieldCheck, LogOut, ChevronRight, Settings, Bell, HelpCircle, Check, X, History as HistoryIcon, Image as ImageIcon } from "lucide-react";
 import { auth } from "../firebase";
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, orderBy, getDoc } from "firebase/firestore";
@@ -13,6 +13,7 @@ export default function Account({ onNavigate, onShowPricing, credits }: { onNavi
   const [payments, setPayments] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
   const [activePlan, setActivePlan] = useState<string>("Free Plan");
+  const [activeTab, setActiveTab] = useState<'billing' | 'history'>('billing');
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -171,85 +172,145 @@ export default function Account({ onNavigate, onShowPricing, credits }: { onNavi
         </button>
       </section>
 
-      {/* Payment History */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 px-2 uppercase tracking-wider flex items-center justify-between">
-          <span>Transaction History</span>
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-        </h3>
-        <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden text-sm">
-          {loadingPayments ? (
-            <div className="p-8 text-center text-slate-400">Loading history...</div>
-          ) : payments.length === 0 ? (
-            <div className="p-8 text-center text-slate-400 italic">No transactions found.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] uppercase tracking-widest text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Date</th>
-                    <th className="px-4 py-3">Plan</th>
-                    <th className="px-4 py-3 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                  {payments.map((p) => (
-                    <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
-                      <td className="px-4 py-4">
-                        <div className="font-medium text-slate-900 dark:text-white">
-                          {new Date(p.timestamp?.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          {p.creditsAdded} Coins Added
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="capitalize font-bold text-slate-700 dark:text-slate-300">
-                          {p.planId}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-white">
-                        ₹{p.amount}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </section>
+      {/* Tabs */}
+      <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full overflow-hidden">
+        <button
+          onClick={() => setActiveTab('billing')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-bold transition-all ${
+            activeTab === 'billing' 
+              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
+              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          Billing & Plans
+        </button>
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-bold transition-all ${
+            activeTab === 'history' 
+              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
+              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+          }`}
+        >
+          <HistoryIcon className="w-4 h-4" />
+          Gallery History
+        </button>
+      </div>
 
-      {/* Subscription Plans */}
-      <section className="space-y-3">
-        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 px-2 uppercase tracking-wider">Subscription Plans</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {plans.map((plan) => (
-            <div key={plan.name} className={`relative p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm text-center ${plan.popular ? 'ring-2 ring-brand-500' : ''}`}>
-              {plan.popular && (
-                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                  Popular
-                </div>
-              )}
-              <div className="flex flex-row md:flex-col items-center justify-between md:justify-center">
-                <div className="text-left md:text-center">
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{plan.name}</h4>
-                  <div className="flex items-baseline gap-1">
-                    <div className={`text-xl font-black ${plan.color.split(' ')[1]}`}>{plan.credits}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Coins</div>
+      <AnimatePresence mode="wait">
+        {activeTab === 'billing' ? (
+          <motion.div 
+            key="billing"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="space-y-6"
+          >
+            {/* Payment History */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 px-2 uppercase tracking-wider flex items-center justify-between">
+                <span>Transaction History</span>
+                <Clock className="w-3.5 h-3.5 text-slate-400" />
+              </h3>
+              <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden text-sm">
+                {loadingPayments ? (
+                  <div className="p-8 text-center text-slate-400">Loading history...</div>
+                ) : payments.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 italic">No transactions found.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] uppercase tracking-widest text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Plan</th>
+                          <th className="px-4 py-3 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                        {payments.map((p) => (
+                          <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-colors">
+                            <td className="px-4 py-4">
+                              <div className="font-medium text-slate-900 dark:text-white">
+                                {new Date(p.timestamp?.seconds * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                              <div className="text-[10px] text-slate-400">
+                                {p.creditsAdded} Coins Added
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <span className="capitalize font-bold text-slate-700 dark:text-slate-300">
+                                {p.planId}
+                              </span>
+                            </td>
+                            <td className="px-4 py-4 text-right font-black text-slate-900 dark:text-white">
+                              ₹{p.amount}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                </div>
-                <button 
-                  onClick={onShowPricing}
-                  className={`px-6 py-2 md:w-full md:py-1.5 rounded-full text-xs font-bold ${plan.color} mt-0 md:mt-3`}
-                >
-                  Buy Now
-                </button>
+                )}
               </div>
+            </section>
+
+            {/* Subscription Plans */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 px-2 uppercase tracking-wider">Subscription Plans</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {plans.map((plan) => (
+                  <div key={plan.name} className={`relative p-4 rounded-2xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm text-center ${plan.popular ? 'ring-2 ring-brand-500' : ''}`}>
+                    {plan.popular && (
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-brand-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                        Popular
+                      </div>
+                    )}
+                    <div className="flex flex-row md:flex-col items-center justify-between md:justify-center">
+                      <div className="text-left md:text-center">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{plan.name}</h4>
+                        <div className="flex items-baseline gap-1">
+                          <div className={`text-xl font-black ${plan.color.split(' ')[1]}`}>{plan.credits}</div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider">Coins</div>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={onShowPricing}
+                        className={`px-6 py-2 md:w-full md:py-1.5 rounded-full text-xs font-bold ${plan.color} mt-0 md:mt-3`}
+                      >
+                        Buy Now
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </motion.div>
+        ) : (
+          <motion.div 
+            key="history"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm text-center"
+          >
+            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-500" />
             </div>
-          ))}
-        </div>
-      </section>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">High-Res Delivery Center</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-6">
+              Your generated images and 4K upscaler history are being migrated here. Soon, you will be able to retrieve all your High-Res Google Cloud Storage links from this dashboard.
+            </p>
+            <button 
+              onClick={() => onNavigate('studio')}
+              className="px-6 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+            >
+              Go to Workspace
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Menu Sections */}
       <section className="grid grid-cols-2 gap-3">
