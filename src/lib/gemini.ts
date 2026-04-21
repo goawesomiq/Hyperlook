@@ -323,10 +323,11 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
       }
 
       const resultDataUrl = await new Promise<string>((resolve, reject) => {
+        // High-end image models can take up to 4 minutes during peak times. Increase timeout to 10 minutes.
         const timeout = setTimeout(() => {
           eventSource.close();
-          reject(new Error("Photoshoot generation timed out (120s limit). Please check your internet and try again."));
-        }, 120000); // 120 second safety timeout
+          reject(new Error("Photoshoot generation timed out (10 min limit). Please check your internet and try again."));
+        }, 600000); 
 
         const eventSource = new EventSource(`/api/status/${jobId}`);
         console.log(`SSE: Connected to /api/status/${jobId}`);
