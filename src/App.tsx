@@ -777,7 +777,7 @@ export default function App() {
                 className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-xs border border-amber-200 dark:border-amber-800/50 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors mr-1"
               >
                 <Crown className="w-3.5 h-3.5" />
-                {credits}
+                {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Unlimited ∞" : credits}
               </button>
             )}
             <button 
@@ -886,17 +886,21 @@ export default function App() {
       </main>
 
       {/* Mobile Nav Bar */}
-      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-300 ${ (activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && currentStep < 3 ? "pt-6" : ""}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-300 ${ (activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) ? "pt-6" : ""}`}>
         <AnimatePresence>
-          {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && currentStep < 3 && (
+          {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && (
             <motion.div 
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               className="w-full overflow-hidden"
             >
-              <div className="px-4 pb-2">
-                <StepIndicator currentStep={currentStep} steps={STEPS} />
+              <div className="px-4 py-2">
+                <StepIndicator 
+                  currentStep={currentStep} 
+                  steps={STEPS} 
+                  progress={progress} 
+                />
               </div>
             </motion.div>
           )}
@@ -942,7 +946,7 @@ export default function App() {
 
       {/* Floating Step Indicator - Desktop Only */}
       <AnimatePresence>
-        {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && currentStep < 3 && (
+        {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -950,7 +954,11 @@ export default function App() {
             className="fixed bottom-6 left-0 right-0 z-40 pointer-events-none px-4 hidden md:block"
           >
             <div className="max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-full border border-slate-100 dark:border-slate-800 p-2 pointer-events-auto">
-              <StepIndicator currentStep={currentStep} steps={STEPS} />
+              <StepIndicator 
+                currentStep={currentStep} 
+                steps={STEPS} 
+                progress={progress} 
+              />
             </div>
           </motion.div>
         )}
