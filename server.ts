@@ -897,7 +897,8 @@ Return the result in JSON format.`;
 
     app.post("/api/generate", async (req, res) => {
       try {
-        const { userId, userEmail, config, mainImageBase64, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = req.body;
+        const { userId, userEmail, config, currentPose, prompt, referenceImagesBase64, aspectRatio, quality } = req.body;
+        const mainImageBase64 = req.body.mainImageBase64 || req.body.image || req.body.base64Image;
         
         // Check user has enough coins before queueing
         const ADMIN_EMAIL = "goawesomiq@gmail.com";
