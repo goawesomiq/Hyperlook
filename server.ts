@@ -7,6 +7,7 @@ import crypto from "crypto";
 import fs from "fs";
 import { Queue, Worker } from 'bullmq';
 import { getUserCredits, updateUserCredits } from './firestoreRest';
+import sharp from 'sharp';
 
 const WORKER_MODE = process.env.WORKER_MODE === 'true';
 const PORT = Number(process.env.PORT || 3000);
@@ -275,7 +276,32 @@ async function processUpscaleJob(job: any) {
       if (job.updateProgress) await job.updateProgress(30);
 
       const formData = new FormData();
-      const buffer = Buffer.from(cleanImg, 'base64');
+      let buffer = Buffer.from(cleanImg, 'base64');
+      
+      // Ensure image is at most 1,048,576 pixels (max size for Stability Fast Upscaler)
+      try {
+        const imageMetadata = await sharp(buffer).metadata();
+        if (imageMetadata.width && imageMetadata.height) {
+          const totalPixels = imageMetadata.width * imageMetadata.height;
+          // 1 Megapixel = 1,048,576 pixels
+          if (totalPixels > 1048000) {
+            console.log(`UPSCALE: Image exceeds 1MP limit (${totalPixels} pixels). Resizing to comply with Stability requirement.`);
+            const scaleFactor = Math.sqrt(1045000 / totalPixels);
+            const newWidth = Math.floor(imageMetadata.width * scaleFactor);
+            const newHeight = Math.floor(imageMetadata.height * scaleFactor);
+            
+            console.log(`UPSCALE: Resizing from ${imageMetadata.width}x${imageMetadata.height} to ${newWidth}x${newHeight}`);
+            
+            buffer = await sharp(buffer)
+              .resize(newWidth, newHeight, { fit: 'inside' })
+              .jpeg({ quality: 98 })
+              .toBuffer();
+          }
+        }
+      } catch (sharpError) {
+        console.warn("UPSCALE: Sharp could not process image metadata, proceeding with raw buffer.", sharpError);
+      }
+
       const blob = new Blob([buffer], { type: 'image/jpeg' });
       formData.append('image', blob, 'image.jpg');
       formData.append('output_format', 'jpeg');
