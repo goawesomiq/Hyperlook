@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Upload, Plus, X, Image as ImageIcon, Star } from "lucide-react";
+import { Upload, Plus, X, Image as ImageIcon, Star, Palette, Pipette, User, Type } from "lucide-react";
 
 interface ImageUploaderProps {
   onMainImage: (base64: string) => void;
@@ -9,9 +9,32 @@ interface ImageUploaderProps {
   refImages: string[];
   isMagicRef?: boolean;
   onMagicRefChange?: (val: boolean) => void;
+  isMagicVariation?: boolean;
+  onMagicVariationChange?: (val: boolean) => void;
+  colorVariationType?: 'text' | 'code' | 'image';
+  onColorVariationTypeChange?: (val: 'text' | 'code' | 'image') => void;
+  colorVariationValue?: string;
+  onColorVariationValueChange?: (val: string) => void;
+  magicVariationModelAction?: 'same' | 'different';
+  onModelActionChange?: (val: 'same' | 'different') => void;
 }
 
-export default function ImageUploader({ onMainImage, onRefImages, mainImage, refImages, isMagicRef, onMagicRefChange }: ImageUploaderProps) {
+export default function ImageUploader({ 
+  onMainImage, 
+  onRefImages, 
+  mainImage, 
+  refImages, 
+  isMagicRef, 
+  onMagicRefChange,
+  isMagicVariation,
+  onMagicVariationChange,
+  colorVariationType,
+  onColorVariationTypeChange,
+  colorVariationValue,
+  onColorVariationValueChange,
+  magicVariationModelAction,
+  onModelActionChange
+}: ImageUploaderProps) {
   const mainInputRef = useRef<HTMLInputElement>(null);
   const refInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,6 +61,9 @@ export default function ImageUploader({ onMainImage, onRefImages, mainImage, ref
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         if (ctx) {
+          // White background fix for transparent PNGs
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
           ctx.drawImage(img, 0, 0, width, height);
           // Compress to JPEG with 0.8 quality
           const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
@@ -73,29 +99,159 @@ export default function ImageUploader({ onMainImage, onRefImages, mainImage, ref
     onRefImages(newRefs);
   };
 
+  const swatchInputRef = useRef<HTMLInputElement>(null);
+
+  const onSwatchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onColorVariationValueChange) {
+      handleFile(file, (base64) => onColorVariationValueChange(base64));
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-4xl mx-auto w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
+      {/* Feature Toggles */}
+      <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 mb-2">
+        {onMagicRefChange && (
+          <button
+            onClick={() => {
+              onMagicRefChange(!isMagicRef);
+              if (!isMagicRef && onMagicVariationChange) onMagicVariationChange(false);
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[11px] md:text-sm font-bold transition-all ${
+              isMagicRef 
+                ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 ring-2 ring-yellow-400/50 shadow-lg shadow-yellow-200/50 dark:shadow-none" 
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md"
+            }`}
+          >
+            <Star className={`w-3 h-3 md:w-5 md:h-5 ${isMagicRef ? "fill-yellow-500 text-yellow-500" : ""}`} />
+            Magic Ref (Pose Transfer)
+          </button>
+        )}
+        
+        {onMagicVariationChange && (
+          <button
+            onClick={() => {
+              onMagicVariationChange(!isMagicVariation);
+              if (!isMagicVariation && onMagicRefChange) onMagicRefChange(false);
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[11px] md:text-sm font-bold transition-all ${
+              isMagicVariation 
+                ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-2 ring-purple-400/50 shadow-lg shadow-purple-200/50 dark:shadow-none" 
+                : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md"
+            }`}
+          >
+            <Palette className={`w-3 h-3 md:w-5 md:h-5 ${isMagicVariation ? "fill-purple-500 text-purple-500" : ""}`} />
+            Magic Variations (Recoloring)
+          </button>
+        )}
+      </div>
+
+      {/* Magic Variation Config */}
+      <AnimatePresence>
+        {isMagicVariation && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="p-4 md:p-6 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-3xl space-y-4 shadow-inner"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Variation Type Selection */}
+              <div className="space-y-3">
+                <p className="text-xs md:text-sm font-bold text-purple-700 dark:text-purple-400 flex items-center gap-2">
+                  <Pipette className="w-4 h-4" /> Color Input Type
+                </p>
+                <div className="flex gap-2">
+                  {[
+                    { id: 'text', label: 'Hex/Name', icon: Type },
+                    { id: 'image', label: 'Swatch', icon: ImageIcon }
+                  ].map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => onColorVariationTypeChange?.(type.id as any)}
+                      className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+                        colorVariationType === type.id
+                          ? "bg-white dark:bg-slate-800 border-purple-500 text-purple-600 shadow-md scale-[1.02]"
+                          : "bg-white/50 dark:bg-slate-800/50 border-transparent text-slate-400 hover:bg-white dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <type.icon className="w-5 h-5" />
+                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">{type.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Model Identity Option */}
+              <div className="space-y-3">
+                <p className="text-xs md:text-sm font-bold text-purple-700 dark:text-purple-400 flex items-center gap-2">
+                  <User className="w-4 h-4" /> Model Identity
+                </p>
+                <div className="flex gap-2">
+                  {[
+                    { id: 'same', label: 'Same Model', desc: 'Keep original person' },
+                    { id: 'different', label: 'New Model', desc: 'Completely new identity' }
+                  ].map((action) => (
+                    <button
+                      key={action.id}
+                      onClick={() => onModelActionChange?.(action.id as any)}
+                      className={`flex-1 flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${
+                        magicVariationModelAction === action.id
+                          ? "bg-white dark:bg-slate-800 border-purple-500 text-purple-600 shadow-md scale-[1.02]"
+                          : "bg-white/50 dark:bg-slate-800/50 border-transparent text-slate-400 hover:bg-white dark:hover:bg-slate-800"
+                      }`}
+                    >
+                      <span className="text-[10px] md:text-xs font-bold uppercase tracking-wider">{action.label}</span>
+                      <span className="text-[9px] font-medium opacity-60">{action.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Input Value */}
+            <div className="pt-2">
+              {colorVariationType === 'text' ? (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={colorVariationValue}
+                    onChange={(e) => onColorVariationValueChange?.(e.target.value)}
+                    placeholder="Enter color name or hex (e.g., Emerald Green, #50C878)"
+                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-purple-200 dark:border-purple-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-md border border-slate-200" style={{ backgroundColor: colorVariationValue }} />
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => swatchInputRef.current?.click()}
+                    className="flex-1 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border-2 border-dashed border-purple-300 dark:border-purple-800/50 text-purple-600 font-bold text-sm hover:border-purple-500 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4" />
+                    {colorVariationValue ? "Change Swatch" : "Upload Color Swatch"}
+                  </button>
+                  <input type="file" ref={swatchInputRef} onChange={onSwatchChange} accept="image/*" className="hidden" />
+                  {colorVariationValue && (
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-purple-200 shadow-sm">
+                      <img src={`data:image/jpeg;base64,${colorVariationValue}`} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 pt-2">
         {/* Main Product Image */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-sm md:text-base font-semibold text-slate-800 dark:text-white">
               Main Product Image <span className="text-red-500">*</span>
             </label>
-            {onMagicRefChange && (
-              <button
-                onClick={() => onMagicRefChange(!isMagicRef)}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] md:text-sm font-bold transition-colors ${
-                  isMagicRef 
-                    ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-900/50" 
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border border-transparent"
-                }`}
-                title="Use an existing generation to create new poses with 100% consistency"
-              >
-                <Star className={`w-3 h-3 md:w-4 md:h-4 ${isMagicRef ? "fill-yellow-500 text-yellow-500" : ""}`} />
-                Magic Ref
-              </button>
-            )}
           </div>
           <div
             onClick={() => mainInputRef.current?.click()}
@@ -122,10 +278,24 @@ export default function ImageUploader({ onMainImage, onRefImages, mainImage, ref
             )}
           </div>
           {isMagicRef && (
-            <p className="text-[10px] md:text-sm text-yellow-700 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-xl border border-yellow-100 dark:border-yellow-900/40 leading-tight">
-              <Star className="w-3 h-3 inline-block mr-1 mb-0.5" />
-              <strong>Magic Ref Mode:</strong> Upload an existing generation to perfectly match the model and background, changing only the pose.
-            </p>
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-100 dark:border-yellow-900/40 space-y-1">
+              <p className="text-[10px] md:text-xs text-yellow-700 dark:text-yellow-500 flex items-center gap-1 font-bold">
+                <Star className="w-3 h-3 fill-yellow-500" /> MAGIC REF MODE ACTIVE
+              </p>
+              <p className="text-[10px] md:text-xs text-yellow-600 dark:text-yellow-400 leading-tight">
+                Upload an existing generation here. AI will keep the person and background 100% identical while transferring new poses.
+              </p>
+            </div>
+          )}
+          {isMagicVariation && (
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-900/40 space-y-1">
+              <p className="text-[10px] md:text-xs text-purple-700 dark:text-purple-400 flex items-center gap-1 font-bold">
+                <Palette className="w-3 h-3 fill-purple-500" /> MAGIC VARIATIONS ACTIVE
+              </p>
+              <p className="text-[10px] md:text-xs text-purple-600 dark:text-purple-400 leading-tight">
+                AI will retain the garment's design and texture but update its color based on your target variation.
+              </p>
+            </div>
           )}
         </div>
 

@@ -102,7 +102,8 @@ async function processPhotoshootJob(job: any) {
   }
 
   const ADMIN_EMAIL = "goawesomiq@gmail.com";
-  let isAdmin = userEmail === ADMIN_EMAIL;
+  const emailToSafe = (userEmail || "").toLowerCase();
+  let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
   const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -179,6 +180,7 @@ async function processPhotoshootJob(job: any) {
   }));
 
   console.log('GENERATE: Calling Gemini API');
+  console.log('GENERATE: API Key available:', !!(process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY));
   console.log('GENERATE: Waiting for response...');
 
   const responseData = await callGeminiWithRetry(
@@ -674,9 +676,9 @@ Return the result in JSON format.`;
 
         try {
           const responseData = await callGeminiWithRetry(
-            'gemini-3.1-pro-preview',
+            'gemini-3-flash-preview',
             requestBody,
-            60000 // 60 seconds
+            120000 // 120 seconds
           );
 
           const textResult = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
@@ -737,7 +739,8 @@ Return the result in JSON format.`;
         
         // Check user has enough coins before queueing
         const ADMIN_EMAIL = "goawesomiq@gmail.com";
-        let isAdmin = userEmail === ADMIN_EMAIL;
+        const emailToSafe = (userEmail || "").toLowerCase();
+        let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
         const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
         const projectId = process.env.FIREBASE_PROJECT_ID;
         const firebaseApiKey = process.env.FIREBASE_API_KEY;

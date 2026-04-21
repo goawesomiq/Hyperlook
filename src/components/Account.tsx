@@ -154,11 +154,11 @@ export default function Account({ onNavigate, onShowPricing, credits }: { onNavi
           <div className="flex items-center gap-3 mt-1 text-[11px] font-bold">
             <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
               <Crown className="w-3 h-3" />
-              {user.email === "goawesomiq@gmail.com" ? "Unlimited ∞" : `${credits} Coins`}
+              {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Unlimited ∞" : `${credits} Coins`}
             </div>
             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
             <span className="text-brand-600 dark:text-brand-400 uppercase tracking-widest">
-              {user.email === "goawesomiq@gmail.com" ? "Platinum" : activePlan}
+              {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Platinum" : activePlan}
             </span>
           </div>
           <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1 uppercase tracking-wider">{user.email}</p>

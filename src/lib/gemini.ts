@@ -28,7 +28,7 @@ Return the result in JSON format.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gemini-3.1-pro-preview',
+          model: 'gemini-3-flash-preview',
           image: base64Image,
           base64Image: base64Image,
           prompt: prompt,
@@ -83,6 +83,10 @@ export interface GenerationConfig {
   referenceImages?: string[];
   userNote?: string;
   isMagicRef?: boolean;
+  isMagicVariation?: boolean;
+  colorVariationType?: 'text' | 'code' | 'image';
+  colorVariationValue?: string;
+  magicVariationModelAction?: 'same' | 'different';
   complementaryPart?: {
     label: string;
     description: string;
@@ -109,7 +113,11 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
     userNote,
     complementaryPart,
     footwear,
-    isMagicRef
+    isMagicRef,
+    isMagicVariation,
+    colorVariationType,
+    colorVariationValue,
+    magicVariationModelAction
   } = config;
 
   const qualityPrompt = quality === "4K" 
@@ -136,7 +144,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
   }
 
   // Generate a random seed to ensure face reset when product changes
-  const randomSeed = Math.floor(Math.random() * 1000000);
+  const randomSeed = Math.floor(Math.random() * 10000000);
 
   let prompt = `CRITICAL INSTRUCTION: Absolute 1:1 Product and Model Consistency.
   
@@ -168,41 +176,90 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
   QUALITY: ${qualityPrompt} No studio assets or tools visible. Utmost detailing on fabric texture and embroidery.`;
 
   if (isMagicRef) {
-    prompt = `CRITICAL INSTRUCTION: MAGIC REFERENCE MODE.
-    
-    You are an expert AI photo editor. The user has provided an existing generated image as a Magic Reference.
-    Your task is to generate the EXACT SAME IMAGE (100% identical model, face, hairstyle, exact garment, and exact background) BUT in a NEW POSE: ${poseInstruction}.
-    
-    DO NOT change the background. DO NOT change the outfit. DO NOT change the model's identity.
-    The new pose MUST NOT be the same as the input image's pose. Make it a professional, natural fashion pose.
-    Ensure the poses are non-identical, highly professional, non-robotic, and natural. The model should pose in different angles and view directions.
-    ${currentPose !== "Product Focus" && currentPose !== "Half Portrait" ? "CRITICAL: The camera framing MUST be a wide shot capturing the FULL BODY of the model from head to toe. Do not crop out the head, face, or feet." : ""}
-    
-    ${userNote ? `SPECIAL USER INSTRUCTION / HIGHLIGHT: ${userNote}. You MUST incorporate this specific instruction into the final image.` : ""}
+    prompt = `
+    CRITICAL INSTRUCTION: POSE VARIATION MODE.
+
+    You are an expert AI photo editor. The FIRST primary image provided is an ALREADY GENERATED AI photoshoot image (or a high-quality reference photo).
+    Your task is to generate the EXACT SAME SCENE (100% identical face, 100% identical body features, 100% identical background) BUT in a NEW POSE: ${poseInstruction}.
+
+    STRICT CONSTRAINTS (NON-NEGOTIABLE):
+    1. FACE, BODY & IDENTITY: The model's face, complete body features, identity, and hairstyle MUST perfectly match the FIRST primary input image.
+    2. BACKGROUND: The environment and background MUST perfectly match the FIRST primary input image. DO NOT change it.
+    3. GARMENT: The physical clothing/garment MUST be 100% identical to the reference image in fabric, pattern, embroidery, color, and silhouette. YOU MUST incorporate EVERY SINGLE reference image piece exactly as described.
+    4. IGNORE RAW REFERENCES: DO NOT revert to the face or background of any secondary, raw clothing photos provided. Only use secondary references to understand the garment details.
     
     QUALITY: ${qualityPrompt}`;
   }
 
-  const parts = [
-    { text: prompt },
-    { inlineData: { mimeType: "image/jpeg", data: mainImageBase64 } },
-    ...referenceImages.map(img => ({ inlineData: { mimeType: "image/jpeg", data: img } })),
-  ];
+  if (isMagicVariation) {
+    let garmentConsistencyRule = "";
 
-  // If no reference images provided, create a minimal valid placeholder
-  // so Gemini knows this is a generation task not analysis task
+    if (colorVariationType === "text" || colorVariationType === "code") {
+      garmentConsistencyRule = `
+      STRICT GARMENT CONSISTENCY (COLOR VARIATION MODE): The physical clothing/garment MUST be 100% perfectly identical to the reference image in fabric, pattern, silhouette, styling, and embroidery design, BUT THE COLOR MUST BE CHANGED. 
+      TARGET NEW COLOR: You must perfectly recolor the garment to match ${colorVariationValue} exactly. Retain all original textures, embroideries, and patterns but shift the base and accent hues to perfectly match this target color.`;
+    } else if (colorVariationType === "image") {
+      garmentConsistencyRule = `
+      STRICT GARMENT CONSISTENCY (COLOR VARIATION MODE): The physical clothing/garment MUST be 100% perfectly identical to the reference image in fabric, pattern, silhouette, styling, and embroidery design, BUT THE COLOR MUST BE CHANGED. 
+      TARGET NEW COLOR: Look at the LAST reference image provided in the list (this is our 'TARGET COLOR REFERENCE IMAGE'). Extract the EXACT color tone, shade, and gradient from that LAST image and apply it to the garment. Retain all original textures of the garment but recolor it perfectly.`;
+    }
+
+    const keepIdentity = (magicVariationModelAction === "same");
+
+    if (keepIdentity) {
+      prompt = `
+      CRITICAL INSTRUCTION: POSE & COLOR VARIATION MODE.
+
+      You are an expert AI photo editor. The FIRST primary image provided is an ALREADY GENERATED AI photoshoot image (or a high-quality reference photo).
+      Your task is to generate the EXACT SAME SCENE (100% identical face, 100% identical body features, 100% identical background) BUT in a NEW POSE: ${poseInstruction}.
+
+      STRICT CONSTRAINTS (NON-NEGOTIABLE):
+      1. FACE, BODY & IDENTITY: The model's face, complete body features, identity, and hairstyle MUST perfectly match the FIRST primary input image.
+      2. BACKGROUND: The environment and background MUST perfectly match the FIRST primary input image. DO NOT change it.
+      
+      ${garmentConsistencyRule}
+
+      4. IGNORE RAW REFERENCES: DO NOT revert to the face or background of any secondary, raw clothing photos provided. Only use secondary references to understand the garment details.
+      
+      QUALITY: ${qualityPrompt}`;
+    } else {
+      prompt = `
+      CRITICAL INSTRUCTION: 100% NEW FACE & BACKGROUND, 100% IDENTICAL GARMENT BUT RECOLORED.
+    
+      You are an expert AI photographer generating a multi-view photoshoot. Your EXACT task is to extract ONLY the garment from the reference images and place it on a COMPLETELY NEW fashion model in a COMPLETELY NEW environment.
+      
+      ${garmentConsistencyRule}
+      
+      STRICT MODEL DISCARD (REPLACE FACE AND BODY): YOU MUST 100% IGNORE the face, body type, identity, hair, and head of the person in the input images. Generate a COMPLETELY NEW, completely unique, attractive, highly professional fashion model face and body features (Digital Seed: ${randomSeed}). This generated model must be entirely distinct from any other image. DO NOT copy the original input model's face or body under any circumstances.
+      
+      STRICT BACKGROUND DISCARD: YOU MUST 100% IGNORE the background in the input images. You MUST place the new model entirely in the environment described in BACKDROP.
+      
+      QUALITY: ${qualityPrompt}`;
+    }
+  }
+
   const finalReferenceImages = (referenceImages && referenceImages.length > 0) 
     ? referenceImages 
     : [];
 
+  // If it's a Magic Variation with an image swatch, we need to pass that swatch as a reference image
+  const extraReferenceImages = [];
+  if (isMagicVariation && colorVariationType === "image" && colorVariationValue) {
+    extraReferenceImages.push(colorVariationValue);
+  }
+
+  const allReferenceImages = [...finalReferenceImages, ...extraReferenceImages];
+
   // Log what we are sending
   console.log('Sending to analyze:', {
     hasImage: !!mainImageBase64,
-    referenceCount: finalReferenceImages.length,
-    model: 'gemini-3.1-flash-image-preview'
+    referenceCount: allReferenceImages.length,
+    model: 'gemini-3.1-flash-image-preview',
+    isMagicRef,
+    isMagicVariation
   });
 
-  const finalPrompt = finalReferenceImages.length === 0
+  const finalPrompt = allReferenceImages.length === 0 && !isMagicRef && !isMagicVariation
     ? `Create a photorealistic fashion photograph. Generate a new image from scratch showing a model wearing this exact garment. ${prompt}`
     : prompt;
 
@@ -223,7 +280,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           model: "gemini-3.1-flash-image-preview",
           image: mainImageBase64,
           base64Image: mainImageBase64,
-          referenceImagesBase64: finalReferenceImages,
+          referenceImagesBase64: allReferenceImages,
           aspectRatio,
           quality,
           response_modalities: ["IMAGE", "TEXT"]

@@ -85,6 +85,10 @@ export default function App() {
     poses: ["Front Full Body"],
     userNote: "",
     isMagicRef: false,
+    isMagicVariation: false,
+    colorVariationType: 'text',
+    colorVariationValue: '',
+    magicVariationModelAction: 'same',
   });
 
   const [results, setResults] = useState<string[]>([]);
@@ -316,7 +320,7 @@ export default function App() {
     if (!mainImage || isProcessing) return;
 
     // Strict Coin Validation (Bypass for admin)
-    const isAdmin = user?.email === "goawesomiq@gmail.com";
+    const isAdmin = user?.email?.toLowerCase() === "goawesomiq@gmail.com";
     const requiredCredits = config.poses.length || 1;
     if (!isAdmin && credits < requiredCredits) {
       setError("Insufficient coins. Please select a plan to continue generating.");
@@ -369,7 +373,9 @@ export default function App() {
             const base64Ref = getRawBase64(currentFirstResult);
             const parallelConfig = {
               ...currentConfig,
-              isMagicRef: true,
+              // If we are in Magic Variation mode, we keep that mode active for all poses in the batch.
+              // We only force isMagicRef if it's NOT a Magic Variation different-model run.
+              isMagicRef: currentConfig.isMagicVariation && currentConfig.magicVariationModelAction === 'different' ? false : true,
               referenceImages: [getRawBase64(mainImage), ...refImages]
             };
             
@@ -383,7 +389,7 @@ export default function App() {
           const base64Ref = getRawBase64(currentFirstResult);
           const parallelConfig = {
             ...currentConfig,
-            isMagicRef: true,
+            isMagicRef: currentConfig.isMagicVariation && currentConfig.magicVariationModelAction === 'different' ? false : true,
             referenceImages: [getRawBase64(mainImage), ...refImages]
           };
           
@@ -594,13 +600,21 @@ export default function App() {
               onRefImages={setRefImages}
               isMagicRef={config.isMagicRef}
               onMagicRefChange={(val) => setConfig({ ...config, isMagicRef: val })}
+              isMagicVariation={config.isMagicVariation}
+              onMagicVariationChange={(val) => setConfig({ ...config, isMagicVariation: val })}
+              colorVariationType={config.colorVariationType}
+              onColorVariationTypeChange={(val) => setConfig({ ...config, colorVariationType: val })}
+              colorVariationValue={config.colorVariationValue}
+              onColorVariationValueChange={(val) => setConfig({ ...config, colorVariationValue: val })}
+              magicVariationModelAction={config.magicVariationModelAction}
+              onModelActionChange={(val) => setConfig({ ...config, magicVariationModelAction: val })}
             />
 
             <div className="flex justify-center flex-col items-center gap-4">
               <button
                 disabled={!mainImage || isProcessing}
                 onClick={() => {
-                  if (config.isMagicRef) {
+                  if (config.isMagicRef || config.isMagicVariation) {
                     setCurrentStep(2);
                   } else {
                     handleAnalyze();
@@ -619,7 +633,9 @@ export default function App() {
                   </>
                 ) : (
                   <>
-                    {config.isMagicRef ? "Configure Magic Reference" : "Analyze Garment"}
+                    {config.isMagicRef || config.isMagicVariation 
+                      ? (config.isMagicRef ? "Configure Magic Reference" : "Configure Magic Variation") 
+                      : "Analyze Garment"}
                     <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
                   </>
                 )}
@@ -668,7 +684,7 @@ export default function App() {
               onChange={(key, val) => setConfig({ ...config, [key]: val })}
               onGenerate={handleGenerate}
               onBack={() => setCurrentStep(1)}
-              isLocked={config.isMagicRef || !!firstResult}
+              isLocked={config.isMagicRef || config.isMagicVariation || !!firstResult}
               generatedPoses={generatedPoses}
             />
           </motion.div>
@@ -800,7 +816,7 @@ export default function App() {
               className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-[10px] border border-amber-200 dark:border-amber-800/50 mr-1"
             >
               <Crown className="w-3 h-3" />
-              {user.email === "goawesomiq@gmail.com" ? "∞" : credits}
+              {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "∞" : credits}
             </button>
           )}
           <button onClick={toggleDarkMode} className="w-8 h-8 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-600 dark:text-brand-400">
@@ -870,51 +886,68 @@ export default function App() {
       </main>
 
       {/* Mobile Nav Bar */}
-      <nav className="mobile-nav">
-        <button 
-          onClick={() => setActivePage("home")}
-          className={`flex flex-col items-center gap-1 transition-colors ${activePage === "home" ? "text-brand-600" : "text-slate-400"}`}
-        >
-          <HomeIcon className="w-6 h-6" />
-          <span className="text-[10px] font-bold uppercase tracking-wider">Home</span>
-        </button>
-        <button 
-          onClick={() => setActivePage(lastWorkspacePage)}
-          className={`flex flex-col items-center gap-1 transition-colors relative ${ (activePage === "workspace" || activePage === "studio" || activePage === "garment-studio") ? "text-brand-600" : "text-slate-400"}`}
-        >
-          <Wand2 className="w-6 h-6" />
-          {isProcessing && (
-            <span className="absolute top-0 right-1 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
-            </span>
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-300 ${ (activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && currentStep < 3 ? "pt-6" : ""}`}>
+        <AnimatePresence>
+          {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && currentStep < 3 && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="w-full overflow-hidden"
+            >
+              <div className="px-4 pb-2">
+                <StepIndicator currentStep={currentStep} steps={STEPS} />
+              </div>
+            </motion.div>
           )}
-          <span className="text-[10px] font-bold uppercase tracking-wider">Workspace</span>
-        </button>
-        <button 
-          onClick={() => setActivePage("how-it-works")}
-          className={`flex flex-col items-center gap-1 transition-colors ${activePage === "how-it-works" ? "text-brand-600" : "text-slate-400"}`}
-        >
-          <Sparkles className="w-6 h-6" />
-          <span className="text-[10px] font-bold uppercase tracking-wider">How it Works</span>
-        </button>
-        <button 
-          onClick={() => setActivePage("account")}
-          className={`flex flex-col items-center gap-1 transition-colors ${activePage === "account" ? "text-brand-600" : "text-slate-400"}`}
-        >
-          <User className="w-6 h-6" />
-          <span className="text-[10px] font-bold uppercase tracking-wider">Account</span>
-        </button>
+        </AnimatePresence>
+        
+        <div className="h-16 flex items-center justify-around px-6 pb-safe">
+          <button 
+            onClick={() => setActivePage("home")}
+            className={`flex flex-col items-center gap-1 transition-colors ${activePage === "home" ? "text-brand-600" : "text-slate-400"}`}
+          >
+            <HomeIcon className="w-6 h-6" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Home</span>
+          </button>
+          <button 
+            onClick={() => setActivePage(lastWorkspacePage)}
+            className={`flex flex-col items-center gap-1 transition-colors relative ${ (activePage === "workspace" || activePage === "studio" || activePage === "garment-studio") ? "text-brand-600" : "text-slate-400"}`}
+          >
+            <Wand2 className="w-6 h-6" />
+            {isProcessing && (
+              <span className="absolute top-0 right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
+              </span>
+            )}
+            <span className="text-[10px] font-bold uppercase tracking-wider">Workspace</span>
+          </button>
+          <button 
+            onClick={() => setActivePage("how-it-works")}
+            className={`flex flex-col items-center gap-1 transition-colors ${activePage === "how-it-works" ? "text-brand-600" : "text-slate-400"}`}
+          >
+            <Sparkles className="w-6 h-6" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">How it Works</span>
+          </button>
+          <button 
+            onClick={() => setActivePage("account")}
+            className={`flex flex-col items-center gap-1 transition-colors ${activePage === "account" ? "text-brand-600" : "text-slate-400"}`}
+          >
+            <User className="w-6 h-6" />
+            <span className="text-[10px] font-bold uppercase tracking-wider">Account</span>
+          </button>
+        </div>
       </nav>
 
-      {/* Floating Step Indicator (Visible during generation setup) */}
+      {/* Floating Step Indicator - Desktop Only */}
       <AnimatePresence>
         {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && currentStep < 3 && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-20 md:bottom-6 left-0 right-0 z-40 pointer-events-none px-4"
+            className="fixed bottom-6 left-0 right-0 z-40 pointer-events-none px-4 hidden md:block"
           >
             <div className="max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-full border border-slate-100 dark:border-slate-800 p-2 pointer-events-auto">
               <StepIndicator currentStep={currentStep} steps={STEPS} />

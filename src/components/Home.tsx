@@ -71,10 +71,10 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
   }, [banners]);
 
   return (
-    <div className="space-y-6 md:space-y-12 pb-24">
+    <div className="space-y-4 md:space-y-12 pb-24">
       {/* Dynamic Banners */}
       {banners && banners.length > 0 && (
-        <section className="pt-2 md:pt-4">
+        <section className="pt-1 md:pt-4">
           <div className="relative w-full rounded-2xl md:rounded-3xl overflow-hidden shadow-xl aspect-[21/9] md:aspect-[32/9]">
             <motion.img 
               key={currentBanner}
@@ -101,17 +101,17 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
       )}
 
       {/* Hero Section */}
-      <section className="text-center space-y-3 md:space-y-6 pt-2 md:pt-4">
+      <section className="text-center space-y-2 md:space-y-6 pt-1 md:pt-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="inline-flex items-center gap-1.5 md:gap-2 px-4 py-1.5 md:px-6 md:py-2 bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 rounded-full text-[10px] md:text-sm font-bold border border-brand-100 dark:border-slate-700 shadow-sm"
+          className="inline-flex items-center gap-1.5 md:gap-2 px-3 py-1 md:px-6 md:py-2 bg-brand-50 dark:bg-slate-800 text-brand-600 dark:text-brand-400 rounded-full text-[9px] md:text-sm font-bold border border-brand-100 dark:border-slate-700 shadow-sm"
         >
           <motion.img 
             src={logo || "/logo.png"} 
             onError={(e) => e.currentTarget.src = '/logo.png'}
             alt="Hyperlook AI" 
-            className="w-3 h-3 md:w-5 md:h-5 object-contain"
+            className="w-2.5 h-2.5 md:w-5 md:h-5 object-contain"
             animate={{ rotate: 360 }}
             transition={{ repeat: Infinity, duration: 8, ease: "linear" }}
           />
@@ -121,7 +121,7 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-3xl md:text-7xl font-serif font-bold text-slate-900 dark:text-white leading-tight"
+          className="text-2xl md:text-7xl font-serif font-bold text-slate-900 dark:text-white leading-tight"
         >
           Choose Your <br className="hidden md:block"/>
           <span className="gradient-text italic">Product Studio</span>
@@ -131,7 +131,7 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="text-sm md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-4 md:px-0"
+          className="text-xs md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-4 md:px-0"
         >
           Select a specialized AI studio to create professional, high-fidelity photoshoots for your brand.
         </motion.p>
