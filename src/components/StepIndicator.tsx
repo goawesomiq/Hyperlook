@@ -9,8 +9,8 @@ interface StepIndicatorProps {
 
 export default function StepIndicator({ currentStep, steps, progress }: StepIndicatorProps) {
   return (
-    <div className="flex flex-col items-center w-full max-w-sm mx-auto py-4">
-      <div className="flex items-center justify-center w-full px-4 mb-4">
+    <div className="flex flex-col items-center w-full max-w-sm mx-auto py-2">
+      <div className="flex items-center justify-center w-full px-4 mb-2">
         {steps.map((step, index) => (
           <div key={step} className="flex items-center flex-1 last:flex-none">
             <div className="relative flex items-center justify-center">

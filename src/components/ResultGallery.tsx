@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Download, RefreshCcw, LayoutGrid, ArrowLeft, CheckCircle, PlusCircle, Wand2, Crown } from "lucide-react";
+import { auth } from "../firebase";
 
 interface ResultGalleryProps {
   images: string[];
@@ -75,24 +76,71 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
     }
   };
 
-  const handleRequestHighRes = (index: number, quality: '2k' | '4k') => {
+  const handleRequestHighRes = async (index: number, quality: '2k' | '4k') => {
     if (processingHighRes[index]) return;
     
     // Set processing state
     setProcessingHighRes(prev => ({ ...prev, [index]: quality }));
 
-    // Mock processing delay (e.g., 8 seconds)
-    setTimeout(() => {
-      // Set the mock URL (in phase 3, this will be real Firebase URL)
-      setHighResUrls(prev => ({
-        ...prev,
-        [index]: {
-          ...prev[index],
-          [quality]: images[index] // Using the 1K image as placeholder layout
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Please log in to use high-fidelity features.");
+
+      const response = await fetch("/api/upscale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          userEmail: user.email,
+          imageBase64: images[index], // Send the 1K image directly
+          quality
+        })
+      });
+
+      if (!response.ok) {
+         const respObj = await response.json();
+         throw new Error(respObj.error || "Failed to start upscaling");
+      }
+      
+      const { jobId } = await response.json();
+      
+      const eventSource = new EventSource(`/api/status/${jobId}`);
+      
+      eventSource.onmessage = async (e) => {
+        const data = JSON.parse(e.data);
+        if (data.state === 'completed') {
+          eventSource.close();
+          const res = await fetch(`/api/result/${jobId}`);
+          if (res.ok) {
+            const resData = await res.json();
+            setHighResUrls(prev => ({
+              ...prev,
+              [index]: {
+                ...prev[index],
+                [quality]: resData.returnvalue?.imageUrl || resData.returnvalue
+              }
+            }));
+          } else {
+            console.error("Failed to fetch upscale result.");
+          }
+          setProcessingHighRes(prev => ({ ...prev, [index]: null }));
+        } else if (data.state === 'failed') {
+          eventSource.close();
+          setProcessingHighRes(prev => ({ ...prev, [index]: null }));
+          alert("Upscale failed: " + data.failedReason);
         }
-      }));
+      };
+      
+      eventSource.onerror = () => {
+        eventSource.close();
+        setProcessingHighRes(prev => ({ ...prev, [index]: null }));
+        alert("Connection to server lost. Upscale failed.");
+      };
+
+    } catch (error: any) {
+      alert(error.message);
       setProcessingHighRes(prev => ({ ...prev, [index]: null }));
-    }, 8000);
+    }
   };
 
   const getAspectRatioClass = (ratio: string) => {
@@ -145,15 +193,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
             <div className="text-center space-y-4 w-full max-w-md">
               <p className="text-xl font-bold text-slate-800 dark:text-white">Generating Hyper-Realistic Image...</p>
               <p className="text-slate-500 dark:text-slate-400 mt-2">Applying highest fidelity and professional studio lighting.</p>
-              
-              {/* Progress Bar */}
-              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 mt-6 overflow-hidden">
-                <div 
-                  className="bg-brand-600 h-3 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-sm font-bold text-brand-600 dark:text-brand-400">{Math.round(progress)}%</p>
+              <p className="text-lg font-bold text-brand-600 dark:text-brand-400">{Math.round(progress)}%</p>
             </div>
           </div>
         ) : (

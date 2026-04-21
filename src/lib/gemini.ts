@@ -28,7 +28,7 @@ Return the result in JSON format.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-3.1-flash-preview',
           image: base64Image,
           base64Image: base64Image,
           prompt: prompt,
@@ -251,10 +251,10 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
   const allReferenceImages = [...finalReferenceImages, ...extraReferenceImages];
 
   // Log what we are sending
-  console.log('Sending to analyze:', {
+  console.log('Sending to generate:', {
     hasImage: !!mainImageBase64,
     referenceCount: allReferenceImages.length,
-    model: 'gemini-3.1-flash-image-preview',
+    model: 'gemini-2.5-pro',
     isMagicRef,
     isMagicVariation
   });
@@ -268,7 +268,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
   
   while (retries >= 0) {
     try {
-      const response = await fetch("/api/analyze", {
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -277,7 +277,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           userId: auth.currentUser?.uid || "anonymous",
           userEmail: auth.currentUser?.email || "",
           prompt: finalPrompt,
-          model: "gemini-3.1-flash-image-preview",
+          model: "gemini-3.1-flash-preview",
           image: mainImageBase64,
           base64Image: mainImageBase64,
           referenceImagesBase64: allReferenceImages,

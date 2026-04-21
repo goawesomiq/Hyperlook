@@ -16,47 +16,29 @@ console.log('Worker URL configured as:', WORKER_URL);
 
 // ============ HELPER FUNCTIONS ============
 
+import { GoogleGenAI } from "@google/genai";
+
 async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: number, maxRetries = 3) {
   let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
+  if (!apiKey) throw new Error("No Gemini API key found");
   
+  const ai = new GoogleGenAI({ apiKey });
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       console.log(`Gemini call attempt ${attempt}/${maxRetries} for model ${model}`);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-          signal: controller.signal
-        }
-      );
-      clearTimeout(timeoutId);
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: requestBody.contents,
+        config: requestBody.generationConfig || Object.assign(requestBody.config || {}, {
+          responseModalities: ["IMAGE", "TEXT"]
+        })
+      });
       
-      if (response.status === 503) {
-        const waitTime = attempt * 5000;
-        console.log(`503 error. Waiting ${waitTime/1000}s before retry...`);
-        await new Promise(r => setTimeout(r, waitTime));
-        continue;
-      }
-      
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`Gemini API Error: ${response.status} - ${errText}`);
-      }
-      
-      const data = await response.json();
-      console.log(`Gemini call successful on attempt ${attempt}`);
-      return data;
+      return response;
       
     } catch (error: any) {
-      if (error.name === 'AbortError') {
-        console.log(`Request timed out after ${timeoutMs}ms`);
-      }
       if (attempt === maxRetries) throw error;
       const waitTime = attempt * 5000;
       console.log(`Error: ${error.message}. Retrying in ${waitTime/1000}s...`);
@@ -123,13 +105,13 @@ async function processPhotoshootJob(job: any) {
   });
 
   // Build parts array
-  const imageParts = [];
+  const imageParts: any[] = [];
 
   // Add main garment image
   if (cleanedMain) {
     imageParts.push({
-      inline_data: {
-        mime_type: 'image/jpeg',
+      inlineData: {
+        mimeType: 'image/jpeg',
         data: cleanedMain
       }
     });
@@ -138,8 +120,8 @@ async function processPhotoshootJob(job: any) {
   // Add reference images
   cleanedRefs.forEach((ref: string) => {
     imageParts.push({
-      inline_data: {
-        mime_type: 'image/jpeg', 
+      inlineData: {
+        mimeType: 'image/jpeg', 
         data: ref
       }
     });
@@ -162,18 +144,18 @@ async function processPhotoshootJob(job: any) {
       }
     ],
     generationConfig: {
-      response_modalities: ['IMAGE', 'TEXT'],
+      responseModalities: ['IMAGE', 'TEXT'],
       temperature: 1,
-      top_p: 0.95,
-      top_k: 40,
-      max_output_tokens: 8192,
+      topP: 0.95,
+      topK: 40,
+      maxOutputTokens: 8192,
     }
   };
 
   if (job.updateProgress) await job.updateProgress(10);
 
   console.log('GENERATE: Request body:', JSON.stringify({
-    model: 'gemini-3.1-flash-image-preview',
+    model: 'gemini-3.1-flash-preview',
     hasImage: !!mainImageBase64,
     promptLength: prompt?.length,
     responseModalities: ['IMAGE', 'TEXT']
@@ -184,13 +166,12 @@ async function processPhotoshootJob(job: any) {
   console.log('GENERATE: Waiting for response...');
 
   const responseData = await callGeminiWithRetry(
-    'gemini-3.1-flash-image-preview',
+    'gemini-3.1-flash-preview',
     requestBody,
     180000 // 180 seconds
   );
 
   console.log('GENERATE: Response received!');
-  console.log('GENERATE: Response status: 200');
   console.log('GENERATE: Has candidates:', !!responseData.candidates);
   console.log('GENERATE: Parts count:', 
     responseData.candidates?.[0]?.content?.parts?.length);
@@ -250,6 +231,97 @@ async function processPhotoshootJob(job: any) {
   return { image_base64 };
 }
 
+async function processUpscaleJob(job: any) {
+  console.log('UPSCALE: Job received', job.id);
+  const { userId, userEmail, imageBase64, quality } = job.data;
+  
+  const cleanBase64 = (b64: any): string => {
+    if (!b64 || typeof b64 !== 'string') return "";
+    if (b64.includes(',')) return b64.split(',')[1];
+    return b64;
+  };
+  
+  const cleanImg = cleanBase64(imageBase64);
+  if (!cleanImg) throw new Error("No image provided for upscaling.");
+
+  // Deduct Credits
+  const ADMIN_EMAIL = "goawesomiq@gmail.com";
+  const emailToSafe = (userEmail || "").toLowerCase();
+  let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
+  const cost = quality === "4k" ? 2 : 1; 
+
+  const projectIdFB = process.env.FIREBASE_PROJECT_ID;
+  const firebaseApiKey = process.env.FIREBASE_API_KEY;
+
+  if (!isAdmin && projectIdFB && firebaseApiKey && userId) {
+    const credits = await getUserCredits(projectIdFB, userId, firebaseApiKey);
+    if (credits < cost) {
+      throw new Error(`Insufficient credits. Upscaling to ${quality} requires ${cost} coins.`);
+    }
+  }
+
+  if (job.updateProgress) await job.updateProgress(10);
+
+  let finalImageUrl = "";
+  const stabilityApiKey = process.env.STABILITY_API_KEY;
+
+  if (!stabilityApiKey) {
+    console.log("UPSCALE [MOCK MODE]: No STABILITY_API_KEY found. Simulating 5s upscale delay...");
+    await new Promise(r => setTimeout(r, 5000));
+    finalImageUrl = `data:image/jpeg;base64,${cleanImg}`;
+  } else {
+    try {
+      console.log('UPSCALE: Contacting Stability AI...');
+      if (job.updateProgress) await job.updateProgress(30);
+
+      const formData = new FormData();
+      const buffer = Buffer.from(cleanImg, 'base64');
+      const blob = new Blob([buffer], { type: 'image/jpeg' });
+      formData.append('image', blob, 'image.jpg');
+      formData.append('output_format', 'jpeg');
+
+      // Stability AI fast upscaler (generates ~4x equivalent resolution)
+      const url = `https://api.stability.ai/v2beta/stable-image/upscale/fast`;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${stabilityApiKey}`,
+          "Accept": "application/json"
+        },
+        body: formData as any
+      });
+
+      if (!response.ok) {
+        throw new Error(`Stability AI Error: ${await response.text()}`);
+      }
+      if (job.updateProgress) await job.updateProgress(70);
+
+      const responseData = await response.json();
+      
+      if (!responseData.image) {
+        throw new Error("Invalid response from Stability AI");
+      }
+
+      console.log('UPSCALE: Got successful base64 response from Stability AI!');
+      finalImageUrl = `data:image/jpeg;base64,${responseData.image}`;
+
+    } catch (e: any) {
+      console.error("UPSCALE ERROR:", e.message);
+      throw e;
+    }
+  }
+
+  if (!isAdmin && projectIdFB && firebaseApiKey && userId) {
+    await updateUserCredits(projectIdFB, userId, -cost, firebaseApiKey);
+  }
+
+  if (job.updateProgress) await job.updateProgress(100);
+  console.log('UPSCALE: Job completed!');
+
+  return { imageUrl: finalImageUrl };
+}
+
 // ============ WORKER MODE ============
 
 if (WORKER_MODE) {
@@ -299,6 +371,23 @@ if (WORKER_MODE) {
     }
   });
 
+  // HTTP endpoint for synchronous upscale from Hyperlook (Web Server)
+  healthApp.post('/upscale', async (req, res) => {
+    try {
+      console.log('Worker /upscale accessed synchronously');
+      const job = {
+        id: 'sync-up-' + Date.now(),
+        data: req.body,
+        updateProgress: async (p: number) => console.log('Worker sync upscale progress:', p)
+      };
+      const result = await processUpscaleJob(job);
+      return res.json(result); // { imageUrl: "..." }
+    } catch (error: any) {
+      console.error('Worker /upscale error:', error.message);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   healthApp.listen(PORT, '0.0.0.0', () => {
     console.log(`Worker health check on port ${PORT}`);
   });
@@ -309,6 +398,10 @@ if (WORKER_MODE) {
   }
 
   const worker = new Worker('photoshoot', async (job) => {
+    if (job.name === 'upscale') {
+      return await processUpscaleJob(job);
+    }
+    // Default to generate
     return await processPhotoshootJob(job);
   }, {
     connection: { url: process.env.REDIS_URL }
@@ -372,7 +465,7 @@ if (WORKER_MODE) {
         setTimeout(async () => {
           job.state = 'active';
           try {
-            const result = await processPhotoshootJob(job);
+            const result = name === 'upscale' ? await processUpscaleJob(job) : await processPhotoshootJob(job);
             job.returnvalue = result;
             job.state = 'completed';
           } catch (err: any) {
@@ -619,8 +712,8 @@ Return the result in JSON format.`;
               parts: [
                 { text: promptText },
                 {
-                  inline_data: {
-                    mime_type: "image/jpeg",
+                  inlineData: {
+                    mimeType: "image/jpeg",
                     data: base64Image
                   }
                 }
@@ -676,12 +769,12 @@ Return the result in JSON format.`;
 
         try {
           const responseData = await callGeminiWithRetry(
-            'gemini-3-flash-preview',
+            'gemini-3.1-flash-preview',
             requestBody,
             120000 // 120 seconds
           );
 
-          const textResult = responseData.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
+          const textResult = responseData.text || "{}";
           res.json(JSON.parse(textResult));
         } catch (err: any) {
           if (err.message.includes('AI servers are busy') || err.message.includes('timed out')) {
@@ -730,6 +823,75 @@ Return the result in JSON format.`;
       } catch (error: any) {
         console.error('❌ generate-image failed:', error.message);
         return res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.post('/api/upscale-image', async (req, res) => {
+      console.log('=== UPSCALE-IMAGE ENDPOINT HIT (SYNC) ===');
+      if (!WORKER_URL) {
+        return res.status(500).json({ error: 'WORKER_URL not configured' });
+      }
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 200000);
+        
+        const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
+        const workerRes = await fetch(`${formattedUrl}/upscale`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(req.body),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeout);
+        const result = await workerRes.json();
+        return res.json(result);
+      } catch (error: any) {
+        return res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.post("/api/upscale", async (req, res) => {
+      try {
+        const { userId, userEmail, imageBase64, quality } = req.body;
+        
+        // Check user has enough coins before queueing
+        const ADMIN_EMAIL = "goawesomiq@gmail.com";
+        const emailToSafe = (userEmail || "").toLowerCase();
+        let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
+        const cost = quality === "4k" ? 2 : 1; 
+
+        const projectId = process.env.FIREBASE_PROJECT_ID;
+        const apiKey = process.env.FIREBASE_API_KEY;
+
+        if (!isAdmin && projectId && apiKey && userId) {
+          try {
+            const credits = await getUserCredits(projectId, userId, apiKey);
+            if (credits < cost) {
+              return res.status(400).json({ error: `Insufficient credits. Upscaling requires ${cost} coins. Please purchase more.` });
+            }
+          } catch (e) {
+            console.error("Failed to check credits before queueing upscale:", e);
+          }
+        }
+
+        const job = await imageQueue.add('upscale', {
+          userId,
+          userEmail,
+          imageBase64,
+          quality
+        });
+        
+        res.json({ 
+          jobId: job.id,
+          status: 'queued'
+        });
+
+      } catch (error: any) {
+        console.error("Upscale error:", error);
+        res.status(500).json({ 
+          error: error.message || "Failed to queue image upscale",
+        });
       }
     });
 

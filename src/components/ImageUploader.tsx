@@ -111,21 +111,21 @@ export default function ImageUploader({
   return (
     <div className="space-y-4 max-w-4xl mx-auto w-full">
       {/* Feature Toggles */}
-      <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4 mb-2">
+      <div className="flex flex-row items-center justify-center gap-2 md:gap-4 mb-2">
         {onMagicRefChange && (
           <button
             onClick={() => {
               onMagicRefChange(!isMagicRef);
               if (!isMagicRef && onMagicVariationChange) onMagicVariationChange(false);
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[11px] md:text-sm font-bold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 rounded-2xl text-[10px] md:text-sm font-bold transition-all ${
               isMagicRef 
                 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 ring-2 ring-yellow-400/50 shadow-lg shadow-yellow-200/50 dark:shadow-none" 
                 : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md"
             }`}
           >
-            <Star className={`w-3 h-3 md:w-5 md:h-5 ${isMagicRef ? "fill-yellow-500 text-yellow-500" : ""}`} />
-            Magic Ref (Pose Transfer)
+            <Star className={`w-3.5 h-3.5 md:w-5 md:h-5 ${isMagicRef ? "fill-yellow-500 text-yellow-500" : ""}`} />
+            Magic Ref
           </button>
         )}
         
@@ -135,14 +135,14 @@ export default function ImageUploader({
               onMagicVariationChange(!isMagicVariation);
               if (!isMagicVariation && onMagicRefChange) onMagicRefChange(false);
             }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-[11px] md:text-sm font-bold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 rounded-2xl text-[10px] md:text-sm font-bold transition-all ${
               isMagicVariation 
                 ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-2 ring-purple-400/50 shadow-lg shadow-purple-200/50 dark:shadow-none" 
                 : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md"
             }`}
           >
-            <Palette className={`w-3 h-3 md:w-5 md:h-5 ${isMagicVariation ? "fill-purple-500 text-purple-500" : ""}`} />
-            Magic Variations (Recoloring)
+            <Palette className={`w-3.5 h-3.5 md:w-5 md:h-5 ${isMagicVariation ? "fill-purple-500 text-purple-500" : ""}`} />
+            Magic Var
           </button>
         )}
       </div>

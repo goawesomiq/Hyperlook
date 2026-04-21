@@ -584,14 +584,14 @@ export default function App() {
             exit={{ opacity: 0, x: -20 }}
             className="space-y-8"
           >
-            <div className="text-center space-y-2 max-w-2xl mx-auto">
-              <h2 className="text-2xl md:text-4xl font-serif font-bold text-slate-900 leading-tight">
-                Upload Your <span className="gradient-text italic">Garment</span>
-              </h2>
-              <p className="text-sm md:text-base text-slate-500">
-                Start by uploading a clear, raw image of your product.
-              </p>
-            </div>
+              <div className="text-center space-y-2 max-w-2xl mx-auto">
+                <h2 className="text-2xl md:text-4xl font-serif font-bold text-slate-900 leading-tight">
+                  Upload Your <span className="gradient-text italic">Garment</span>
+                </h2>
+                <p className="text-sm md:text-base text-slate-500">
+                  Start by uploading a clear, raw image of your product.
+                </p>
+              </div>
 
             <ImageUploader
               mainImage={mainImage}
@@ -622,35 +622,17 @@ export default function App() {
                 }}
                 className={`px-8 py-3 md:px-12 md:py-4 rounded-full font-bold text-sm md:text-lg transition-all flex items-center gap-2 md:gap-3 shadow-xl ${
                   mainImage && !isProcessing
-                    ? "bg-brand-600 text-white hover:bg-brand-700 hover:scale-105 shadow-brand-200"
-                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                    ? "bg-brand-600 text-white hover:bg-brand-700 hover:scale-105 shadow-brand-200 dark:shadow-none"
+                    : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
                 }`}
               >
-                {isProcessing ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
                   <>
                     {config.isMagicRef || config.isMagicVariation 
                       ? (config.isMagicRef ? "Configure Magic Reference" : "Configure Magic Variation") 
                       : "Analyze Garment"}
                     <ArrowRight className="w-5 h-5 md:w-6 md:h-6" />
                   </>
-                )}
               </button>
-              {isProcessing && currentStep === 0 && (
-                <div className="w-full max-w-md space-y-2 text-center">
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div 
-                      className="bg-brand-600 h-2 rounded-full transition-all duration-300 ease-out"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  <p className="text-sm font-bold text-brand-600">{Math.round(progress)}%</p>
-                </div>
-              )}
             </div>
           </motion.div>
         )}
