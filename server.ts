@@ -303,74 +303,56 @@ async function processUpscaleJob(job: any) {
         console.warn("UPSCALE: Sharp could not process image metadata, proceeding with raw buffer.", sharpError);
       }
 
-      const credentialsJson = JSON.parse(Buffer.from(credentialsBase64, 'base64').toString('utf-8'));
+      const model = String(quality).toLowerCase() === '4k' ? 'gemini-3.1-pro-image-preview' : 'gemini-3.1-flash-image-preview';
+      console.log(`UPSCALE: Using true Img2Img Gemini model ${model} for requested quality ${quality}`);
       
-      const auth = new GoogleAuth({
-        credentials: credentialsJson,
-        scopes: ['https://www.googleapis.com/auth/cloud-platform']
-      });
-      const client = await auth.getClient();
-      const token = await client.getAccessToken();
+      const upscalePrompt = "GENERATE PHOTOREALISTIC IMAGE. DO NOT ANALYZE. Upscale and enhance the attached image to extreme high fidelity. Strictly maintain 100% original consistency, identity, structure, and exact coloring of the subject and garments. Add intricate micro-details, ultra-realistic textures (like fabric weave, leather pores, skin realism), and sharp focus. Make it a 4K masterpiece while staying completely faithful to the original image layout.";
 
-      if (!token.token) {
-        throw new Error("Failed to authenticate with Google Cloud via JSON Service Account.");
-      }
-
-      if (job.updateProgress) await job.updateProgress(40);
-
-      // Testing the latest dedicated upscale endpoint suggested by user
-      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-4.0-upscale-preview:predict`;
-      
-      const upscaleFactor = String(quality).toLowerCase() === '4k' ? 'x4' : 'x2';
-      console.log(`UPSCALE: Using true diffusion factor ${upscaleFactor} for requested quality ${quality}`);
-
-      const payload = {
-        instances: [
+      const requestBody = {
+        contents: [
           {
-            prompt: "high resolution fashion photography, ultra detailed fabric textures, sharp focus, professional studio lighting, 4k quality, masterpiece, photorealistic, intricate details, crisp edges",
-            image: {
-              bytesBase64Encoded: buffer.toString('base64')
-            }
+            role: 'user',
+            parts: [
+              {
+                inlineData: {
+                  mimeType: 'image/jpeg',
+                  data: buffer.toString('base64')
+                }
+              },
+              { text: upscalePrompt }
+            ]
           }
         ],
-        parameters: {
-          sampleCount: 1,
-          mode: "upscale",
-          upscaleConfig: {
-            upscaleFactor: upscaleFactor
-          },
-          negativePrompt: "blurry, low quality, pixelated, distorted, compression artifacts, jpeg artifacts, noise",
-          guidanceScale: 18,
-          outputOptions: {
-            mimeType: "image/png"
-          }
+        generationConfig: {
+          responseMimeType: "image/jpeg"
         }
       };
 
-      if (job.updateProgress) await job.updateProgress(50);
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token.token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Vertex AI Error: ${response.status} ${await response.text()}`);
-      }
-      if (job.updateProgress) await job.updateProgress(70);
-
-      const responseData = await response.json();
+      if (job.updateProgress) await job.updateProgress(40);
       
-      if (!responseData.predictions || !responseData.predictions[0] || !responseData.predictions[0].bytesBase64Encoded) {
-        throw new Error("Invalid response format from Vertex AI");
+      // Use existing Gemini call module
+      const responseData = await callGeminiWithRetry(model, requestBody, 180000);
+      
+      if (job.updateProgress) await job.updateProgress(70);
+      
+      let parts: any[] = [];
+      if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
+        parts = responseData.candidates[0].content.parts;
       }
-
-      console.log('UPSCALE: Got successful latent-diffusion base64 response from Vertex AI in strict PNG format!');
-      finalImageUrl = `data:image/png;base64,${responseData.predictions[0].bytesBase64Encoded}`;
+      
+      const imagePart = parts.find(p => p.inlineData || p.inline_data);
+      
+      if (!imagePart) {
+         const textPart = parts.find(p => p.text);
+         if (textPart?.text) {
+           throw new Error(`Gemini returned text instead of an image: ${textPart.text}`);
+         }
+         throw new Error("Gemini returned invalid response without image data.");
+      }
+      
+      const cleanOutput = (imagePart.inlineData?.data || imagePart.inline_data?.data).toString().replace(/\s/g, '');
+      console.log('UPSCALE: Got successful Img2Img generative response from Gemini!');
+      finalImageUrl = `data:image/jpeg;base64,${cleanOutput}`;
 
     } catch (e: any) {
       console.error("UPSCALE ERROR:", e.message);
