@@ -130,8 +130,6 @@ async function processPhotoshootJob(job: any) {
   // Force generative intent at the start for the Worker
   const generativeForcePrefix = "GENERATE PHOTOREALISTIC IMAGE. DO NOT ANALYZE. ";
   const finalPromptForGemini = prompt.startsWith(generativeForcePrefix) ? prompt : generativeForcePrefix + prompt;
-  
-  const modelToUse = quality === '4K' ? 'gemini-3.1-pro-image-preview' : 'gemini-3.1-flash-image-preview';
 
   const requestBody = {
     contents: [
@@ -146,6 +144,10 @@ async function processPhotoshootJob(job: any) {
       }
     ],
     generationConfig: {
+      imageConfig: {
+        aspectRatio: aspectRatio || "1:1",
+        imageSize: "1K"
+      },
       temperature: 1,
       topP: 0.95,
       topK: 40,
@@ -155,7 +157,7 @@ async function processPhotoshootJob(job: any) {
   if (job.updateProgress) await job.updateProgress(10);
 
   console.log('GENERATE: Request body:', JSON.stringify({
-    model: modelToUse,
+    model: 'gemini-3.1-flash-image-preview',
     hasImage: !!mainImageBase64,
     promptLength: prompt?.length,
     quality: quality
@@ -166,7 +168,7 @@ async function processPhotoshootJob(job: any) {
   console.log('GENERATE: Waiting for response...');
 
   const responseData = await callGeminiWithRetry(
-    modelToUse,
+    'gemini-3.1-flash-image-preview',
     requestBody,
     180000 // 180 seconds
   );
