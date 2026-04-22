@@ -334,6 +334,10 @@ async function processUpscaleJob(job: any) {
         parameters: {
           upscaleConfig: {
             upscaleFactor: upscaleFactor
+          },
+          outputOptions: {
+            mimeType: "image/png",
+            compressionQuality: 100
           }
         }
       };
@@ -360,8 +364,8 @@ async function processUpscaleJob(job: any) {
         throw new Error("Invalid response format from Vertex AI");
       }
 
-      console.log('UPSCALE: Got successful 4K latent-diffusion base64 response from Vertex AI!');
-      finalImageUrl = `data:image/jpeg;base64,${responseData.predictions[0].bytesBase64Encoded}`;
+      console.log('UPSCALE: Got successful latent-diffusion base64 response from Vertex AI in strict PNG format!');
+      finalImageUrl = `data:image/png;base64,${responseData.predictions[0].bytesBase64Encoded}`;
 
     } catch (e: any) {
       console.error("UPSCALE ERROR:", e.message);
