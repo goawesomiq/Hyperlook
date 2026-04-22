@@ -318,8 +318,8 @@ async function processUpscaleJob(job: any) {
 
       if (job.updateProgress) await job.updateProgress(40);
 
-      // Using the latest and fastest Imagen 4.0 model specifically requested by the user for upscaling
-      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-4.0-fast-generate-001:predict`;
+      // Using imagen-3.0-generate-001 which natively supports 'upscale' mode
+      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-001:predict`;
       
       const upscaleFactor = String(quality).toLowerCase() === '4k' ? 'x4' : 'x2';
       console.log(`UPSCALE: Using true diffusion factor ${upscaleFactor} for requested quality ${quality}`);
@@ -327,15 +327,20 @@ async function processUpscaleJob(job: any) {
       const payload = {
         instances: [
           {
+            prompt: "high resolution fashion photography, ultra detailed fabric textures, sharp focus, professional studio lighting, 4k quality, masterpiece, photorealistic, intricate details, crisp edges",
             image: {
               bytesBase64Encoded: buffer.toString('base64')
             }
           }
         ],
         parameters: {
+          sampleCount: 1,
+          mode: "upscale",
           upscaleConfig: {
             upscaleFactor: upscaleFactor
           },
+          negativePrompt: "blurry, low quality, pixelated, distorted, compression artifacts, jpeg artifacts, noise",
+          guidanceScale: 18,
           outputOptions: {
             mimeType: "image/png",
             compressionQuality: 100
