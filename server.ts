@@ -318,8 +318,8 @@ async function processUpscaleJob(job: any) {
 
       if (job.updateProgress) await job.updateProgress(40);
 
-      // Using imagen-3.0-generate-001 which natively supports 'upscale' mode
-      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-001:predict`;
+      // Testing the latest dedicated upscale endpoint suggested by user
+      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-4.0-upscale-preview:predict`;
       
       const upscaleFactor = String(quality).toLowerCase() === '4k' ? 'x4' : 'x2';
       console.log(`UPSCALE: Using true diffusion factor ${upscaleFactor} for requested quality ${quality}`);
