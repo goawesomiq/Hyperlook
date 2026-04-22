@@ -8,6 +8,7 @@ import fs from "fs";
 import { Queue, Worker } from 'bullmq';
 import { getUserCredits, updateUserCredits } from './firestoreRest';
 import sharp from 'sharp';
+import { GoogleAuth } from 'google-auth-library';
 
 const WORKER_MODE = process.env.WORKER_MODE === 'true';
 const PORT = Number(process.env.PORT || 3000);
@@ -264,28 +265,28 @@ async function processUpscaleJob(job: any) {
   if (job.updateProgress) await job.updateProgress(10);
 
   let finalImageUrl = "";
-  const stabilityApiKey = process.env.STABILITY_API_KEY;
+  const credentialsBase64 = process.env.VERTEX_CREDENTIALS_BASE64;
+  const projectId = process.env.GCP_PROJECT_ID;
+  const location = process.env.GCP_LOCATION || 'us-central1';
 
-  if (!stabilityApiKey) {
-    console.log("UPSCALE [MOCK MODE]: No STABILITY_API_KEY found. Simulating 5s upscale delay...");
+  if (!credentialsBase64 || !projectId) {
+    console.log("UPSCALE [MOCK MODE]: No VERTEX_CREDENTIALS_BASE64 found. Simulating 5s upscale delay...");
     await new Promise(r => setTimeout(r, 5000));
     finalImageUrl = `data:image/jpeg;base64,${cleanImg}`;
   } else {
     try {
-      console.log('UPSCALE: Contacting Stability AI...');
-      if (job.updateProgress) await job.updateProgress(30);
+      console.log(`UPSCALE: Contacting Vertex AI (project: ${projectId}, location: ${location})...`);
+      if (job.updateProgress) await job.updateProgress(20);
 
-      const formData = new FormData();
       let buffer = Buffer.from(cleanImg, 'base64');
       
-      // Ensure image is at most 1,048,576 pixels (max size for Stability Fast Upscaler)
+      // Ensure image is at most 1,048,576 pixels (max size for optimal Vertex upscaling constraints)
       try {
         const imageMetadata = await sharp(buffer).metadata();
         if (imageMetadata.width && imageMetadata.height) {
           const totalPixels = imageMetadata.width * imageMetadata.height;
-          // 1 Megapixel = 1,048,576 pixels
           if (totalPixels > 1048000) {
-            console.log(`UPSCALE: Image exceeds 1MP limit (${totalPixels} pixels). Resizing to comply with Stability requirement.`);
+            console.log(`UPSCALE: Image exceeds 1MP limit (${totalPixels} pixels). Resizing to comply with Vertex constraints.`);
             const scaleFactor = Math.sqrt(1045000 / totalPixels);
             const newWidth = Math.floor(imageMetadata.width * scaleFactor);
             const newHeight = Math.floor(imageMetadata.height * scaleFactor);
@@ -302,35 +303,65 @@ async function processUpscaleJob(job: any) {
         console.warn("UPSCALE: Sharp could not process image metadata, proceeding with raw buffer.", sharpError);
       }
 
-      const blob = new Blob([buffer], { type: 'image/jpeg' });
-      formData.append('image', blob, 'image.jpg');
-      formData.append('output_format', 'jpeg');
+      const credentialsJson = JSON.parse(Buffer.from(credentialsBase64, 'base64').toString('utf-8'));
+      
+      const auth = new GoogleAuth({
+        credentials: credentialsJson,
+        scopes: ['https://www.googleapis.com/auth/cloud-platform']
+      });
+      const client = await auth.getClient();
+      const token = await client.getAccessToken();
 
-      // Stability AI fast upscaler (generates ~4x equivalent resolution)
-      const url = `https://api.stability.ai/v2beta/stable-image/upscale/fast`;
+      if (!token.token) {
+        throw new Error("Failed to authenticate with Google Cloud via JSON Service Account.");
+      }
+
+      if (job.updateProgress) await job.updateProgress(40);
+
+      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/image-generation@006:predict`;
+      
+      const upscaleFactor = String(quality).toLowerCase() === '4k' ? 'x4' : 'x2';
+      console.log(`UPSCALE: Using true diffusion factor ${upscaleFactor} for requested quality ${quality}`);
+
+      const payload = {
+        instances: [
+          {
+            image: {
+              bytesBase64Encoded: buffer.toString('base64')
+            }
+          }
+        ],
+        parameters: {
+          upscaleConfig: {
+            upscaleFactor: upscaleFactor
+          }
+        }
+      };
+
+      if (job.updateProgress) await job.updateProgress(50);
 
       const response = await fetch(url, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${stabilityApiKey}`,
-          "Accept": "application/json"
+          "Authorization": `Bearer ${token.token}`,
+          "Content-Type": "application/json"
         },
-        body: formData as any
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error(`Stability AI Error: ${await response.text()}`);
+        throw new Error(`Vertex AI Error: ${response.status} ${await response.text()}`);
       }
       if (job.updateProgress) await job.updateProgress(70);
 
       const responseData = await response.json();
       
-      if (!responseData.image) {
-        throw new Error("Invalid response from Stability AI");
+      if (!responseData.predictions || !responseData.predictions[0] || !responseData.predictions[0].bytesBase64Encoded) {
+        throw new Error("Invalid response format from Vertex AI");
       }
 
-      console.log('UPSCALE: Got successful base64 response from Stability AI!');
-      finalImageUrl = `data:image/jpeg;base64,${responseData.image}`;
+      console.log('UPSCALE: Got successful 4K latent-diffusion base64 response from Vertex AI!');
+      finalImageUrl = `data:image/jpeg;base64,${responseData.predictions[0].bytesBase64Encoded}`;
 
     } catch (e: any) {
       console.error("UPSCALE ERROR:", e.message);
