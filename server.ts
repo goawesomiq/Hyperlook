@@ -318,7 +318,7 @@ async function processUpscaleJob(job: any) {
 
       if (job.updateProgress) await job.updateProgress(40);
 
-      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/image-generation@006:predict`;
+      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagegeneration@006:predict`;
       
       const upscaleFactor = String(quality).toLowerCase() === '4k' ? 'x4' : 'x2';
       console.log(`UPSCALE: Using true diffusion factor ${upscaleFactor} for requested quality ${quality}`);
