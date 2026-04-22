@@ -318,11 +318,8 @@ async function processUpscaleJob(job: any) {
 
       if (job.updateProgress) await job.updateProgress(40);
 
-      // The legacy imagegeneration@006 is fully deprecated. Imagen 3.0 does not natively support x2/x4 latent upscaleConfig yet.
-      // However, the widely supported model for editing/upscaling workflows right now is imagen-3.0-capability-001 (Preview)
-      // or using the stable imagen-3.0-generate-002 model if Google silently added the upscale API.
-      // Let's use the most robust currently available image model endpoint.
-      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-3.0-generate-002:predict`;
+      // Using the latest and fastest Imagen 4.0 model specifically requested by the user for upscaling
+      const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/imagen-4.0-fast-generate-001:predict`;
       
       const upscaleFactor = String(quality).toLowerCase() === '4k' ? 'x4' : 'x2';
       console.log(`UPSCALE: Using true diffusion factor ${upscaleFactor} for requested quality ${quality}`);
