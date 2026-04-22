@@ -342,8 +342,7 @@ async function processUpscaleJob(job: any) {
           negativePrompt: "blurry, low quality, pixelated, distorted, compression artifacts, jpeg artifacts, noise",
           guidanceScale: 18,
           outputOptions: {
-            mimeType: "image/png",
-            compressionQuality: 100
+            mimeType: "image/png"
           }
         }
       };
