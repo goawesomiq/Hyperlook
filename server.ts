@@ -324,10 +324,14 @@ async function processUpscaleJob(job: any) {
       const upscaleFactor = String(quality).toLowerCase() === '4k' ? 'x4' : 'x2';
       console.log(`UPSCALE: Using true diffusion factor ${upscaleFactor} for requested quality ${quality}`);
 
+      // "Swap the Paradigm": Force the upscaler to hallucinate ultra-details by injecting a very aggressive 'Detail Prompt' 
+      // and maxing out the prompt adherence (guidanceScale).
+      const detailPrompt = "UPSCALE AND ENHANCE DETAILS: Inject massive high-fidelity micro-detailing, extreme photorealistic textures, ultra-sharp focus, cinematic lighting, 8k resolution macro details, intricate linework and fabric grain. Transform this reference image into a breathtaking, perfectly crisp photographic masterwork with vivid fidelity.";
+
       const payload = {
         instances: [
           {
-            prompt: "high resolution fashion photography, ultra detailed fabric textures, sharp focus, professional studio lighting, 4k quality, masterpiece, photorealistic, intricate details, crisp edges",
+            prompt: detailPrompt,
             image: {
               bytesBase64Encoded: buffer.toString('base64')
             }
@@ -339,8 +343,8 @@ async function processUpscaleJob(job: any) {
           upscaleConfig: {
             upscaleFactor: upscaleFactor
           },
-          negativePrompt: "blurry, low quality, pixelated, distorted, compression artifacts, jpeg artifacts, noise",
-          guidanceScale: 18,
+          negativePrompt: "blurry, low quality, pixelated, distorted, compression artifacts, jpeg artifacts, noise, smooth, plastic, low detail",
+          guidanceScale: 25, // Significantly increase guidance to FORCE detailing from the prompt into the upscale
           outputOptions: {
             mimeType: "image/png"
           }
