@@ -18,6 +18,7 @@ import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { collection, addDoc, serverTimestamp, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { useWakeLock } from "./hooks/useWakeLock";
+import { useAntiPiracy } from "./hooks/useAntiPiracy";
 
 const STEPS = ["Upload", "Analyze", "Configure"];
 
@@ -27,6 +28,9 @@ export default function App() {
   const [activePage, setActivePage] = useState<Page>("home");
   const [currentStep, setCurrentStep] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Anti-piracy features
+  useAntiPiracy();
   
   // Prevent screen sleep while generating
   useWakeLock(isProcessing);
@@ -325,14 +329,35 @@ export default function App() {
     return str;
   };
 
+  const getCostPerImage = (garmentType?: string, quality?: string) => {
+    let cost = 1;
+    if (garmentType === 'design_print') {
+      if (quality === '1K') cost = 1.5;
+      else if (quality === '2K') cost = 2.5;
+      else if (quality === '4K') cost = 3;
+      else cost = 1.5;
+    } else {
+      if (quality === '1K') cost = 1;
+      else if (quality === '2K') cost = 1.5;
+      else if (quality === '4K') cost = 2;
+      else cost = 1;
+    }
+    return cost;
+  };
+
+  const calculateRequiredCredits = (posesLength: number) => {
+    const posesCount = posesLength || 1;
+    return posesCount * getCostPerImage(config.garmentType, config.quality);
+  };
+
   const handleGenerate = async () => {
     if (!mainImage || isProcessing) return;
 
     // Strict Coin Validation (Bypass for admin)
     const isAdmin = user?.email?.toLowerCase() === "goawesomiq@gmail.com";
-    const requiredCredits = config.poses.length || 1;
+    const requiredCredits = calculateRequiredCredits(config.poses.length);
     if (!isAdmin && credits < requiredCredits) {
-      setError("Insufficient coins. Please select a plan to continue generating.");
+      setError(`Insufficient coins. You need ${requiredCredits} coins for this generation.`);
       setShowPricing(true);
       return;
     }
@@ -368,11 +393,11 @@ export default function App() {
         : currentConfig.poses;
 
       // Update requiredCredits based on posesToGenerate
-      const requiredCredits = posesToGenerate.length || 1;
-      if (!isAdmin && credits < requiredCredits) {
+      const requiredCreditsForBatch = calculateRequiredCredits(posesToGenerate.length);
+      if (!isAdmin && credits < requiredCreditsForBatch) {
         clearInterval(progressInterval);
         setIsProcessing(false);
-        setError("Insufficient coins. Please select a plan to continue generating.");
+        setError(`Insufficient coins. You need ${requiredCreditsForBatch} coins for this generation.`);
         setShowPricing(true);
         return;
       }
@@ -484,6 +509,14 @@ export default function App() {
     if (index === -1) {
       setActivePage("studio");
       setCurrentStep(2);
+      return;
+    }
+
+    const isAdmin = user?.email?.toLowerCase() === "goawesomiq@gmail.com";
+    const requiredCredits = calculateRequiredCredits(1); // 1 generation
+    if (!isAdmin && credits < requiredCredits) {
+      setError(`Insufficient coins. You need ${requiredCredits} coins for this generation.`);
+      setShowPricing(true);
       return;
     }
 

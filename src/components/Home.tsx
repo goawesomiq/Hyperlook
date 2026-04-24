@@ -92,7 +92,7 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
             onClick={() => setAppMode('videos')}
             className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-all whitespace-nowrap ${appMode === 'videos' ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
-            Videos <span className="ml-1 px-1.5 py-0.5 bg-brand-100 dark:bg-brand-900/50 text-[8px] md:text-[9px] rounded-full uppercase tracking-wider text-brand-600 dark:text-brand-400">Soon</span>
+            Videos
           </button>
         </div>
       </div>
@@ -317,19 +317,48 @@ export default function Home({ onSelectStudio, banners, logo }: HomeProps) {
       )}
 
       {appMode === 'videos' && (
-        <div className="py-24 text-center max-w-lg mx-auto space-y-6">
-          <div className="w-20 h-20 md:w-24 md:h-24 bg-brand-50 dark:bg-brand-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-10 h-10 md:w-12 md:h-12 text-brand-500" />
-          </div>
-          <h2 className="text-2xl md:text-4xl font-serif font-bold text-slate-900 dark:text-white">AI Video Studio</h2>
-          <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 leading-relaxed">
-            We are working on bringing ultra-realistic video generation to your studio. Cinematic quality, perfect consistency. Coming very soon.
-          </p>
-          <div className="pt-4">
-            <span className="px-6 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-sm font-bold uppercase tracking-widest shadow-inner">
-              In Development
+        <div className="py-24 text-center max-w-2xl mx-auto space-y-8 px-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="w-24 h-24 md:w-32 md:h-32 bg-gradient-to-tr from-brand-100 to-accent-100 dark:from-brand-900/30 dark:to-accent-900/30 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-brand-200/50 dark:shadow-none border border-white dark:border-slate-800 rotate-3 hover:rotate-0 transition-transform duration-500"
+          >
+            <Sparkles className="w-12 h-12 md:w-16 md:h-16 text-transparent bg-clip-text bg-gradient-to-r from-brand-500 to-accent-500 stroke-[url(#gradient)]" />
+            <svg width="0" height="0">
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop stopColor="#ec4899" offset="0%" />
+                <stop stopColor="#8b5cf6" offset="100%" />
+              </linearGradient>
+            </svg>
+          </motion.div>
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
+            className="text-3xl md:text-5xl font-serif font-bold text-slate-900 dark:text-white leading-tight"
+          >
+            Cinematic AI <br/> <span className="gradient-text italic">Video Studio</span>
+          </motion.h2>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
+            className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed max-w-lg mx-auto"
+          >
+            We are crafting a revolutionary engine for ultra-realistic product videos. Flawless consistency, physical physics, and breathtaking lighting.
+          </motion.p>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
+            className="pt-8"
+          >
+            <span className="relative inline-flex items-center gap-2 px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full text-sm font-bold uppercase tracking-widest shadow-xl overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-brand-500 to-accent-500 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-500 ease-in-out" />
+              <span className="relative z-10 flex items-center gap-2">Drops Soon <Sparkles className="w-4 h-4" /></span>
             </span>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
