@@ -83,9 +83,9 @@ async function processPhotoshootJob(job: any) {
     throw new Error("No valid main garment image received. Please check your upload.");
   }
 
-  const ADMIN_EMAIL = "goawesomiq@gmail.com";
+  const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
   const emailToSafe = (userEmail || "").toLowerCase();
-  let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
+  let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
   const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -247,9 +247,9 @@ async function processUpscaleJob(job: any) {
   if (!cleanImg) throw new Error("No image provided for upscaling.");
 
   // Deduct Credits
-  const ADMIN_EMAIL = "goawesomiq@gmail.com";
+  const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
   const emailToSafe = (userEmail || "").toLowerCase();
-  let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
+  let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
   const cost = quality === "4k" ? 2 : 1; 
 
   const projectIdFB = process.env.FIREBASE_PROJECT_ID;
@@ -943,9 +943,9 @@ Return the result in JSON format.`;
         const { userId, userEmail, imageBase64, quality } = req.body;
         
         // Check user has enough coins before queueing
-        const ADMIN_EMAIL = "goawesomiq@gmail.com";
+        const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
         const emailToSafe = (userEmail || "").toLowerCase();
-        let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
+        let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
         const cost = quality === "4k" ? 2 : 1; 
 
         const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -988,9 +988,9 @@ Return the result in JSON format.`;
         const mainImageBase64 = req.body.mainImageBase64 || req.body.image || req.body.base64Image;
         
         // Check user has enough coins before queueing
-        const ADMIN_EMAIL = "goawesomiq@gmail.com";
+        const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
         const emailToSafe = (userEmail || "").toLowerCase();
-        let isAdmin = emailToSafe === ADMIN_EMAIL.toLowerCase();
+        let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
         const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
         const projectId = process.env.FIREBASE_PROJECT_ID;
         const firebaseApiKey = process.env.FIREBASE_API_KEY;
