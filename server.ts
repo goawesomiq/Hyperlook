@@ -463,6 +463,14 @@ if (WORKER_MODE) {
     process.exit(1);
   }
 
+  // Fix for MISCONF Redis error: Disable write stopping when background save fails
+  const Redis = (await import('ioredis')).default;
+  const redisConfigFixer = new Redis(process.env.REDIS_URL!);
+  redisConfigFixer.config('SET', 'stop-writes-on-bgsave-error', 'no')
+    .then(() => console.log('✅ Worker: Redis write-protection disabled (MISCONF fix)'))
+    .catch(err => console.error('❌ Worker: Failed to set Redis config:', err))
+    .finally(() => redisConfigFixer.quit());
+
   const worker = new Worker('photoshoot', async (job) => {
     if (job.name === 'upscale') {
       return await processUpscaleJob(job);
@@ -494,6 +502,15 @@ if (WORKER_MODE) {
     imageQueue = new Queue('photoshoot', {
       connection: { url: process.env.REDIS_URL }
     });
+    
+    // Fix for MISCONF Redis error: Disable write stopping when background save fails
+    // This allows the queue to continue working even if disk persistence is failing
+    const Redis = (await import('ioredis')).default;
+    const redisConfigFixer = new Redis(process.env.REDIS_URL!);
+    redisConfigFixer.config('SET', 'stop-writes-on-bgsave-error', 'no')
+      .then(() => console.log('✅ Redis write-protection disabled (MISCONF fix)'))
+      .catch(err => console.error('❌ Failed to set Redis config:', err))
+      .finally(() => redisConfigFixer.quit());
   } else {
     console.warn("REDIS_URL not found. Using in-memory mock queue for development.");
     
