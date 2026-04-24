@@ -940,13 +940,13 @@ Return the result in JSON format.`;
 
     app.post("/api/upscale", async (req, res) => {
       try {
-        const { userId, userEmail, imageBase64, quality } = req.body;
+        const { userId, userEmail, imageBase64, quality, isDesign } = req.body;
         
         // Check user has enough coins before queueing
         const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
         const emailToSafe = (userEmail || "").toLowerCase();
         let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
-        const cost = quality === "4k" ? 2 : 1; 
+        const cost = quality === "4k" ? (isDesign ? 3 : 2) : (isDesign ? 2.5 : 1.5); 
 
         const projectId = process.env.FIREBASE_PROJECT_ID;
         const apiKey = process.env.FIREBASE_API_KEY;

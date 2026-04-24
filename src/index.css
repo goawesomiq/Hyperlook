@@ -76,6 +76,16 @@
 }
 
 /* Anti-piracy image protections */
+body.screenshot-blur img {
+  filter: blur(20px) grayscale(100%) !important;
+  opacity: 0.1 !important;
+  transition: all 0.1s ease-in-out !important;
+}
+
+body img {
+  transition: filter 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
 img {
   -webkit-user-drag: none;
   -khtml-user-drag: none;
@@ -85,10 +95,15 @@ img {
   -webkit-touch-callout: none;
   user-select: none;
   -webkit-user-select: none;
-  pointer-events: auto;
+  pointer-events: none;
 }
 
 .protect-image {
   pointer-events: none;
+}
+
+/* Specific allowed interactive images can override */
+button img, a img, .cursor-pointer img {
+  pointer-events: auto;
 }
 

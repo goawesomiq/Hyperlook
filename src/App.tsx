@@ -221,18 +221,26 @@ export default function App() {
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) return;
       const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1046.50, ctx.currentTime + 0.1);
-      gain.gain.setValueAtTime(0, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.5);
+      
+      const playBeep = (startTime: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, startTime);
+        osc.frequency.exponentialRampToValueAtTime(1046.50, startTime + 0.1);
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.5, startTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+      };
+
+      const now = ctx.currentTime;
+      playBeep(now);
+      playBeep(now + 0.15);
+      playBeep(now + 0.3);
     } catch (e) {
       console.error("Audio play failed", e);
     }
@@ -900,6 +908,7 @@ export default function App() {
                 aspectRatio={config.aspectRatio}
                 generatingIndex={generatingIndex}
                 logo={settings.headerLogo || settings.logo}
+                isDesign={config.garmentType === 'design_print'}
               />
             </motion.div>
           )}
@@ -922,9 +931,9 @@ export default function App() {
       </main>
 
       {/* Mobile Nav Bar */}
-      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-300 ${ (activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) ? "pt-2" : ""}`}>
+      <nav className={`fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border-t border-brand-100 dark:border-slate-800 z-[100] md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.05)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.2)] flex flex-col transition-all duration-300 ${ (activePage === "studio" || activePage === "workspace") && (currentStep > 0 && !isProcessing && results.length === 0) ? "pt-2" : ""}`}>
         <AnimatePresence>
-          {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && (
+          {(activePage === "studio" || activePage === "workspace") && currentStep > 0 && !isProcessing && results.length === 0 && (
             <motion.div 
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
@@ -982,7 +991,7 @@ export default function App() {
 
       {/* Floating Step Indicator - Desktop Only */}
       <AnimatePresence>
-        {(activePage === "studio" || activePage === "workspace") && (currentStep > 0 || isProcessing) && (
+        {(activePage === "studio" || activePage === "workspace") && currentStep > 0 && !isProcessing && results.length === 0 && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
