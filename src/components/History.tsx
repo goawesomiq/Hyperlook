@@ -85,21 +85,21 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12 pb-24">
-      <div className="flex items-center gap-4 mb-8">
+    <div className="max-w-5xl mx-auto space-y-8 md:space-y-12 pb-16">
+      <div className="flex items-center gap-4 mb-6">
         <div className="w-12 h-12 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-2xl flex items-center justify-center shadow-inner">
           <HistoryIcon className="w-6 h-6" />
         </div>
-        <h2 className="text-3xl font-serif font-bold text-slate-900 dark:text-white">Your History</h2>
+        <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 dark:text-white">Your History</h2>
       </div>
 
-      <div className="space-y-12">
+      <div className="space-y-8">
         {photoshoots.map((photoshoot) => (
           <motion.div 
             key={photoshoot.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="cute-card p-6 md:p-8 space-y-6"
+            className="cute-card p-4 md:p-6 space-y-4 md:space-y-6"
           >
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>

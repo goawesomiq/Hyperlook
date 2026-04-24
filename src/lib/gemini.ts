@@ -238,6 +238,23 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
     }
   }
 
+  if (garmentType === "design_print") {
+    prompt = `CRITICAL INSTRUCTION: Generate a High-Fidelity Digital Print Template.
+    
+    You are an expert AI fabric designer. The user has uploaded a raw fabric/garment design or pattern. 
+    Your task is to take the essence, motifs, color palette, and style of the input reference and output a beautiful, continuous, high-definition digital print pattern template.
+    
+    ASPECT RATIO TARGET: This is intended for a long stretch horizontal format (21:9). The output must be styled as a seamless or aesthetically stretched digital print perfect for the entire length of a garment (like a Kurti or Saree print).
+    
+    MANDATORY RULES:
+    1. EXTREME DETAIL: The fabric print must have extreme macro-level detailing. We need to see thread-level sharpness, dye characteristics, and crisp motifs up to 4K resolution fidelity.
+    2. CONSISTENCY: The design language, style, and core visual elements MUST exactly match the uploaded reference image. Do not invent a completely different style.
+    3. NO HUMAN MODELS: Do NOT show any humans, models, mannequins, or backgrounds. The entire image MUST ONLY be the flat digital print fabric pattern stretching corner to corner.
+    4. NO CREASES: The fabric should appear perfectly flat and pressed, as a raw digital graphic template ready for manufacturing.
+    
+    QUALITY: ${qualityPrompt}`;
+  }
+
   const finalReferenceImages = (referenceImages && referenceImages.length > 0) 
     ? referenceImages 
     : [];

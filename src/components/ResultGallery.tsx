@@ -155,15 +155,15 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
 
   if (!isGenerating && images.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto text-center py-20 space-y-6">
-        <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto">
+      <div className="max-w-4xl mx-auto text-center py-12 md:py-20 space-y-4 md:space-y-6">
+        <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto">
           <Wand2 className="w-10 h-10 text-slate-400 dark:text-slate-500" />
         </div>
-        <h3 className="text-2xl font-bold text-slate-800 dark:text-white">No Active Tasks</h3>
-        <p className="text-slate-500 dark:text-slate-400 max-w-md mx-auto">You don't have any ongoing or completed photoshoots in your workspace right now.</p>
+        <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">No Active Tasks</h3>
+        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">You don't have any ongoing or completed photoshoots in your workspace right now.</p>
         <button 
           onClick={onTryNewInput} 
-          className="px-8 py-3 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 dark:shadow-none mt-4"
+          className="px-6 py-3 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 dark:shadow-none mt-4 text-sm"
         >
           Start New Photoshoot
         </button>
@@ -172,28 +172,28 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+    <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-12">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
         <div>
-          <h3 className="text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
+          <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 md:gap-3">
             Generated Photoshoot
-            <CheckCircle className="w-8 h-8 text-green-500" />
+            <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
           </h3>
-          <p className="text-slate-500 dark:text-slate-400 mt-2">Your professional photoshoot is ready. Upgrade to 4K Masterpiece for highest fidelity.</p>
+          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 md:mt-2">Your professional photoshoot is ready. Upgrade to 4K Masterpiece for highest fidelity.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         {isGenerating && generatingIndex === null ? (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 space-y-6">
+          <div className="col-span-full flex flex-col items-center justify-center py-12 md:py-20 space-y-4 md:space-y-6">
             <div className="relative">
-              <div className="w-24 h-24 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin" />
-              <img src={logo || "/logo.png"} onError={(e) => e.currentTarget.src = '/logo.png'} alt="Loading" className="absolute inset-0 m-auto w-10 h-10 object-contain animate-pulse" />
+              <div className="w-20 h-20 md:w-24 md:h-24 border-4 border-brand-100 border-t-brand-600 rounded-full animate-spin" />
+              <img src={logo || "/logo.png"} onError={(e) => e.currentTarget.src = '/logo.png'} alt="Loading" className="absolute inset-0 m-auto w-8 h-8 md:w-10 md:h-10 object-contain animate-pulse" />
             </div>
-            <div className="text-center space-y-4 w-full max-w-md">
-              <p className="text-xl font-bold text-slate-800 dark:text-white">Generating Hyper-Realistic Image...</p>
-              <p className="text-slate-500 dark:text-slate-400 mt-2">Applying highest fidelity and professional studio lighting.</p>
-              <p className="text-lg font-bold text-brand-600 dark:text-brand-400">{Math.round(progress)}%</p>
+            <div className="text-center space-y-2 md:space-y-4 w-full max-w-md">
+              <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white">Generating Hyper-Realistic Image...</p>
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 md:mt-2">Applying highest fidelity and professional studio lighting.</p>
+              <p className="text-base md:text-lg font-bold text-brand-600 dark:text-brand-400">{Math.round(progress)}%</p>
             </div>
           </div>
         ) : (

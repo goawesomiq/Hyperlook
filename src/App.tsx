@@ -21,7 +21,7 @@ import { useWakeLock } from "./hooks/useWakeLock";
 
 const STEPS = ["Upload", "Analyze", "Configure"];
 
-type Page = "home" | "garment-studio" | "studio" | "workspace" | "how-it-works" | "account" | "admin";
+type Page = "home" | "garment-studio" | "design-studio" | "studio" | "workspace" | "how-it-works" | "account" | "admin";
 
 export default function App() {
   const [activePage, setActivePage] = useState<Page>("home");
@@ -255,6 +255,15 @@ export default function App() {
   const handleSelectStudio = (studioId: string) => {
     if (studioId === "garment") {
       setActivePage("garment-studio");
+    } else if (studioId === "design_print_studio") {
+      // Direct jump for now, we will create DesignStudio or just enter the unified workflow.
+      // For Design, the flow goes to the same "studio" step with config for aspect ratio.
+      // We can create an intermediate category select, but user didn't ask for it.
+      // Let's pass directly to studio setup:
+      
+      // Wait, if activePage becomes "design-studio" we can redirect to a specific design pipeline,
+      // But the standard workflow in App is "upload -> analyze -> configure".
+      handleStartStudio("design_print");
     }
   };
 
@@ -354,7 +363,19 @@ export default function App() {
       const currentConfig = { ...config };
       let currentFirstResult = firstResult;
       const newResults: string[] = [];
-      const posesToGenerate = currentConfig.poses;
+      const posesToGenerate = currentConfig.garmentType === 'design_print' && (!currentConfig.poses || currentConfig.poses.length === 0) 
+        ? ["Digital Print Pattern"] 
+        : currentConfig.poses;
+
+      // Update requiredCredits based on posesToGenerate
+      const requiredCredits = posesToGenerate.length || 1;
+      if (!isAdmin && credits < requiredCredits) {
+        clearInterval(progressInterval);
+        setIsProcessing(false);
+        setError("Insufficient coins. Please select a plan to continue generating.");
+        setShowPricing(true);
+        return;
+      }
 
       if (posesToGenerate.length > 0) {
         if (!currentFirstResult) {
@@ -582,14 +603,14 @@ export default function App() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-8"
+            className="space-y-4 md:space-y-6"
           >
-              <div className="text-center space-y-2 max-w-2xl mx-auto">
-                <h2 className="text-2xl md:text-4xl font-serif font-bold text-slate-900 leading-tight">
-                  Upload Your <span className="gradient-text italic">Garment</span>
+              <div className="text-center space-y-1.5 max-w-xl mx-auto">
+                <h2 className="text-xl md:text-2xl font-serif font-bold text-slate-900 leading-tight dark:text-white">
+                  Upload Your <span className="gradient-text italic">{config.garmentType === 'design_print' ? 'Design' : 'Garment'}</span>
                 </h2>
-                <p className="text-sm md:text-base text-slate-500">
-                  Start by uploading a clear, raw image of your product.
+                <p className="text-sm md:text-sm text-slate-500 dark:text-slate-400">
+                  {config.garmentType === 'design_print' ? 'Upload a fabric or garment design to create a beautiful digital print.' : 'Start by uploading a clear, raw image of your product.'}
                 </p>
               </div>
 
@@ -610,7 +631,7 @@ export default function App() {
               onModelActionChange={(val) => setConfig({ ...config, magicVariationModelAction: val })}
             />
 
-            <div className="flex justify-center flex-col items-center gap-4">
+            <div className="flex justify-center flex-col items-center gap-3">
               <button
                 disabled={!mainImage || isProcessing}
                 onClick={() => {
@@ -620,7 +641,7 @@ export default function App() {
                     handleAnalyze();
                   }
                 }}
-                className={`px-8 py-3 md:px-12 md:py-4 rounded-full font-bold text-sm md:text-lg transition-all flex items-center gap-2 md:gap-3 shadow-xl ${
+                className={`px-8 py-3 md:px-10 md:py-3.5 rounded-full font-bold text-sm md:text-base transition-all flex items-center gap-2 md:gap-3 shadow-xl ${
                   mainImage && !isProcessing
                     ? "bg-brand-600 text-white hover:bg-brand-700 hover:scale-105 shadow-brand-200 dark:shadow-none"
                     : "bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed"
@@ -807,7 +828,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-6 py-4 md:py-8 pb-32">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 md:px-6 py-2 md:py-6 pb-24">
         <AnimatePresence mode="wait">
           {activePage === "home" && (
             <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

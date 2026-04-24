@@ -38,31 +38,31 @@ export default function GarmentSelector({ recommendation, userNote, onUserNote, 
   );
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-2xl mx-auto space-y-6">
       <button 
         onClick={onBack}
-        className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors font-medium"
+        className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors font-medium -mt-2"
       >
         <ChevronLeft className="w-5 h-5" />
         Back to Upload
       </button>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-xl border border-slate-100 dark:border-slate-800 relative overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-xl border border-slate-100 dark:border-slate-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
           <Sparkles className="w-24 h-24 text-brand-600 dark:text-brand-400" />
         </div>
 
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-12 h-12 bg-brand-100 dark:bg-brand-900/30 rounded-2xl flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-brand-600 dark:text-brand-400" />
+        <div className="flex items-center gap-4 mb-4 md:mb-6">
+          <div className="w-10 h-10 md:w-12 md:h-12 bg-brand-100 dark:bg-brand-900/30 rounded-2xl flex items-center justify-center">
+            <Sparkles className="w-5 h-5 md:w-6 h-6 text-brand-600 dark:text-brand-400" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Deep Analysis Result</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm">AI has analyzed gender, age, and style</p>
+            <h3 className="text-lg md:text-xl font-bold text-slate-800 dark:text-white">Deep Analysis Result</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm">AI has analyzed gender, age, and style</p>
           </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Garment Type */}
           <div className="space-y-3">
             <label className="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Garment Type</label>

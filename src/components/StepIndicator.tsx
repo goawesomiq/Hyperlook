@@ -53,7 +53,7 @@ export default function StepIndicator({ currentStep, steps, progress }: StepIndi
         <motion.div 
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-[10px] font-bold text-brand-600 flex items-center gap-1.5 mt-1"
+          className="text-[10px] font-bold text-brand-600 flex items-center gap-1.5 mt-5 md:mt-6"
         >
           <div className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse" />
           <span>{Math.round(progress)}% Progress</span>

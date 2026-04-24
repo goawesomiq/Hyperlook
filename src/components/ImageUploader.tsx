@@ -109,16 +109,16 @@ export default function ImageUploader({
   };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto w-full">
+    <div className="space-y-3 md:max-w-xl mx-auto w-full">
       {/* Feature Toggles */}
-      <div className="flex flex-row items-center justify-center gap-2 md:gap-4 mb-2">
+      <div className="flex flex-row items-center justify-center gap-2 md:gap-4 mb-1">
         {onMagicRefChange && (
           <button
             onClick={() => {
               onMagicRefChange(!isMagicRef);
               if (!isMagicRef && onMagicVariationChange) onMagicVariationChange(false);
             }}
-            className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 rounded-2xl text-[10px] md:text-sm font-bold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-2xl text-[10px] md:text-sm font-bold transition-all ${
               isMagicRef 
                 ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-500 ring-2 ring-yellow-400/50 shadow-lg shadow-yellow-200/50 dark:shadow-none" 
                 : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md"
@@ -135,7 +135,7 @@ export default function ImageUploader({
               onMagicVariationChange(!isMagicVariation);
               if (!isMagicVariation && onMagicRefChange) onMagicRefChange(false);
             }}
-            className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2.5 rounded-2xl text-[10px] md:text-sm font-bold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 rounded-2xl text-[10px] md:text-sm font-bold transition-all ${
               isMagicVariation 
                 ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 ring-2 ring-purple-400/50 shadow-lg shadow-purple-200/50 dark:shadow-none" 
                 : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:shadow-md"
@@ -154,7 +154,7 @@ export default function ImageUploader({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="p-4 md:p-6 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-3xl space-y-4 shadow-inner"
+            className="p-3 md:p-5 bg-purple-50/50 dark:bg-purple-900/10 border border-purple-100 dark:border-purple-900/30 rounded-3xl space-y-3 shadow-inner"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Variation Type Selection */}
@@ -255,7 +255,7 @@ export default function ImageUploader({
           </div>
           <div
             onClick={() => mainInputRef.current?.click()}
-            className={`relative w-full h-48 md:h-auto md:aspect-square rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center overflow-hidden ${
+            className={`relative w-full h-40 md:h-56 lg:h-64 rounded-2xl border-2 border-dashed transition-all duration-300 cursor-pointer flex flex-col items-center justify-center overflow-hidden ${
               mainImage ? "border-brand-500 bg-brand-50/30 dark:bg-brand-900/10" : "border-slate-300 dark:border-slate-700 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-slate-50 dark:hover:bg-slate-800/50"
             }`}
           >
@@ -304,7 +304,7 @@ export default function ImageUploader({
           <label className="block text-sm md:text-base font-semibold text-slate-800 dark:text-white">
             Reference Images <span className="text-[10px] md:text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">(Optional hooks/angles)</span>
           </label>
-          <div className="grid grid-cols-3 md:grid-cols-2 gap-2 md:gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-3">
             <AnimatePresence>
               {refImages.map((img, idx) => (
                 <motion.div
