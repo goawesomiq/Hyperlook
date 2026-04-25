@@ -122,7 +122,7 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
           }
         },
         prefill: {
-          email: auth.currentUser.email || '',
+          email: auth.currentUser.email || auth.currentUser.phoneNumber || '',
         },
         theme: {
           color: plan.color === 'amber' ? '#f59e0b' : plan.color === 'purple' ? '#a855f7' : '#3b82f6',

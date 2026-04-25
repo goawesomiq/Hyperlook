@@ -101,7 +101,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user.uid,
-          userEmail: user.email,
+          userEmail: user.email || user.phoneNumber || "",
           imageBase64: images[index], // Send the 1K image directly
           quality,
           isDesign

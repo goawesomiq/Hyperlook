@@ -1,19 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { User, CreditCard, ShieldCheck, LogOut, ChevronRight, Settings, Bell, HelpCircle, Check, X, History as HistoryIcon, Image as ImageIcon } from "lucide-react";
+import { User, CreditCard, ShieldCheck, LogOut, ChevronRight, Settings, Bell, HelpCircle, Check, X, History as HistoryIcon, Image as ImageIcon, Phone, Loader2 } from "lucide-react";
 import { auth } from "../firebase";
-import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, orderBy, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { Coins, Clock } from "lucide-react";
+import { useLanguage } from "../lib/LanguageContext";
 
 export default function Account({ onNavigate, onShowPricing, credits, onNewUser }: { onNavigate: (page: any) => void, onShowPricing: () => void, credits: number, onNewUser?: () => void }) {
+  const { t } = useLanguage();
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [showPolicies, setShowPolicies] = useState(false);
   const [payments, setPayments] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
   const [activePlan, setActivePlan] = useState<string>("Free Plan");
   const [activeTab, setActiveTab] = useState<'billing' | 'history'>('billing');
+
+  const [phoneMode, setPhoneMode] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [phoneLoading, setPhoneLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -96,6 +106,68 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
     }
   };
 
+  const setupRecaptcha = () => {
+    if (!(window as any).recaptchaVerifier) {
+      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': () => {}
+      });
+    }
+  };
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setPhoneLoading(true);
+    try {
+      setupRecaptcha();
+      const appVerifier = (window as any).recaptchaVerifier;
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      setConfirmationResult(confirmation);
+      setOtpSent(true);
+    } catch (error: any) {
+      console.error(error);
+      setErrorMsg(error.message || t("Failed to send OTP. Check phone format.", "Failed to send OTP. Check phone format."));
+      if ((window as any).recaptchaVerifier) {
+        (window as any).recaptchaVerifier.clear();
+        (window as any).recaptchaVerifier = null;
+      }
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setPhoneLoading(true);
+    try {
+      const result = await confirmationResult.confirm(otp);
+      
+      if (result.user) {
+        const userRef = doc(db, "users", result.user.uid);
+        const userDoc = await getDoc(userRef);
+        
+        if (!userDoc.exists()) {
+          await setDoc(userRef, {
+            uid: result.user.uid,
+            phoneNumber: result.user.phoneNumber,
+            createdAt: serverTimestamp(),
+            credits: 10,
+            lastPlan: "Starter (Free)"
+          });
+          if (onNewUser) onNewUser();
+        }
+      }
+    } catch (error: any) {
+      console.error(error);
+      setErrorMsg(error.message || t("Invalid OTP code.", "Invalid OTP code."));
+    } finally {
+      setPhoneLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -112,18 +184,119 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
 
   if (!user) {
     return (
-      <div className="max-w-2xl mx-auto space-y-8 pb-24 pt-8 text-center">
+      <div className="max-w-md mx-auto space-y-8 pb-24 pt-8 text-center px-4">
         <div className="w-20 h-20 bg-brand-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400 rounded-full flex items-center justify-center mx-auto mb-4">
           <User className="w-10 h-10" />
         </div>
-        <h2 className="text-2xl font-serif font-bold text-slate-900 dark:text-white">Welcome to Hyperlook Ai</h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">Sign in to save your generated photoshoots and access your history across devices.</p>
-        <button 
-          onClick={handleLogin}
-          className="px-6 py-3 bg-brand-600 text-white rounded-full font-bold text-sm shadow-lg hover:bg-brand-700 transition-colors"
-        >
-          Sign in with Google
-        </button>
+        <h2 className="text-2xl font-serif font-bold text-slate-900 dark:text-white">{t("Welcome to Hyperlook Ai", "Welcome to Hyperlook Ai")}</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">{t("Sign in to save your generated photoshoots and access your history across devices.", "Sign in to save your generated photoshoots and access your history across devices.")}</p>
+        
+        <div className="space-y-4 pt-4">
+          {!phoneMode ? (
+            <>
+              <button 
+                onClick={handleLogin}
+                className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-full font-bold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
+                {t("Sign in with Google", "Sign in with Google")}
+              </button>
+              
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-slate-200 dark:border-slate-700" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">{t("Or", "Or")}</span>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => setPhoneMode(true)}
+                className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-brand-600 text-white rounded-full font-bold text-sm shadow-md hover:bg-brand-700 transition-colors"
+              >
+                <Phone className="w-5 h-5" />
+                {t("Sign in with Phone", "Sign in with Phone")}
+              </button>
+            </>
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm text-left"
+            >
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t("Phone Verification", "Phone Verification")}</h3>
+              
+              {errorMsg && (
+                <div className="p-3 mb-4 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/50">
+                  {errorMsg}
+                </div>
+              )}
+              
+              <div id="recaptcha-container"></div>
+
+              {!otpSent ? (
+                <form onSubmit={handleSendOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("Phone Number", "Phone Number")}</label>
+                    <input 
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="+91 9876543210"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      required
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    disabled={phoneLoading || !phoneNumber}
+                    className="w-full flex justify-center items-center gap-2 px-6 py-3 bg-brand-600 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-md hover:bg-brand-700 transition-colors"
+                  >
+                    {phoneLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {t("Send OTP", "Send OTP")}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setPhoneMode(false); setErrorMsg(""); }}
+                    className="w-full text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white mt-2"
+                  >
+                    {t("Back to Options", "Back to Options")}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("Enter OTP", "Enter OTP")}</label>
+                    <input 
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="123456"
+                      className="w-full px-4 py-3 tracking-widest text-center text-lg rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      required
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    disabled={phoneLoading || otp.length < 6}
+                    className="w-full flex justify-center items-center gap-2 px-6 py-3 bg-brand-600 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-md hover:bg-brand-700 transition-colors"
+                  >
+                    {phoneLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {t("Verify", "Verify")}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => { setOtpSent(false); setOtp(""); setErrorMsg(""); }}
+                    className="w-full text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white mt-2"
+                  >
+                    {t("Change Phone Number", "Change Phone Number")}
+                  </button>
+                </form>
+              )}
+            </motion.div>
+          )}
+        </div>
       </div>
     );
   }
@@ -163,7 +336,7 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
               {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Platinum" : activePlan}
             </span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1 uppercase tracking-wider">{user.email}</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1 uppercase tracking-wider">{user.email || user.phoneNumber}</p>
         </div>
         <button 
           onClick={onShowPricing}

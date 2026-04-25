@@ -292,7 +292,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
         },
         body: JSON.stringify({
           userId: auth.currentUser?.uid || "anonymous",
-          userEmail: auth.currentUser?.email || "",
+          userEmail: auth.currentUser?.email || auth.currentUser?.phoneNumber || "",
           prompt: finalPrompt,
           model: "gemini-3-flash-preview",
           image: mainImageBase64,

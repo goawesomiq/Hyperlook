@@ -59,9 +59,8 @@ service cloud.firestore {
     // ===============================================================
 
     function isValidUser(data) {
-      return hasRequiredFields(['uid', 'email', 'createdAt']) &&
+      return hasRequiredFields(['uid', 'createdAt']) &&
              data.uid is string &&
-             data.email is string &&
              data.createdAt is timestamp;
     }
 
