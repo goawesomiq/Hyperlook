@@ -75,11 +75,11 @@
   @apply py-12 md:py-20;
 }
 
-/* Anti-piracy image protections */
-body.screenshot-blur img {
-  filter: blur(20px) grayscale(100%) !important;
-  opacity: 0.1 !important;
-  transition: all 0.1s ease-in-out !important;
+/* Anti-piracy protections */
+body.screenshot-blur #root {
+  filter: blur(25px) grayscale(100%) !important;
+  opacity: 0.05 !important;
+  transition: all 0.05s ease-in-out !important;
 }
 
 body img {

@@ -53,46 +53,63 @@ export function useAntiPiracy() {
       }
     };
 
-    // 4. Handle Window Blur (thwarts snipping tools that take window focus)
-    const handleWindowBlur = () => {
-      document.body.classList.add('screenshot-blur');
-    };
+    // 4. Handle Window Blur and Visibility Change
+    const setBlur = () => document.body.classList.add('screenshot-blur');
+    const removeBlur = () => document.body.classList.remove('screenshot-blur');
 
-    const handleWindowFocus = () => {
-      document.body.classList.remove('screenshot-blur');
+    const handleWindowBlur = () => setBlur();
+    const handleWindowFocus = () => removeBlur();
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' || document.hidden) {
+        setBlur();
+      } else {
+        removeBlur();
+      }
     };
 
     // 5. Handle clipboard copy event to prevent copying images
     const handleCopy = (e: ClipboardEvent) => {
       const selection = window.getSelection();
       if (selection && selection.toString() === '') {
-          // Empty text selection might mean they are trying to copy an image
           e.preventDefault();
           if (e.clipboardData) {
             e.clipboardData.setData('text/plain', 'Copying images is disabled.');
           }
       }
     };
+    
+    // 6. Mobile specific touch protections 
+    const handleTouchStart = (e: TouchEvent) => {
+      // Prevent multi-touch gestures that might zoom or do system actions
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
 
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('dragstart', handleDragStart);
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('copy', handleCopy);
+    document.addEventListener('contextmenu', handleContextMenu, { capture: true });
+    document.addEventListener('dragstart', handleDragStart, { capture: true });
+    document.addEventListener('keydown', handleKeyDown, { capture: true });
+    document.addEventListener('copy', handleCopy, { capture: true });
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleWindowBlur);
     window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
 
     // Initial check in case window starts unfocused
-    if (!document.hasFocus()) {
-      handleWindowBlur();
+    if (!document.hasFocus() || document.hidden) {
+      setBlur();
     }
 
     return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('dragstart', handleDragStart);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.addEventListener('copy', handleCopy);
+      document.removeEventListener('contextmenu', handleContextMenu, { capture: true });
+      document.removeEventListener('dragstart', handleDragStart, { capture: true });
+      document.removeEventListener('keydown', handleKeyDown, { capture: true });
+      document.removeEventListener('copy', handleCopy, { capture: true });
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('touchstart', handleTouchStart);
     };
   }, []);
 }

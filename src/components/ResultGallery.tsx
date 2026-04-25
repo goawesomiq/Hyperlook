@@ -235,8 +235,11 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                   </div>
                 ) : (
                   <>
-                    <img src={img} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                    <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-brand-700 dark:text-brand-400 shadow-lg">
+                    <img src={img} className="w-full h-full object-cover select-none pointer-events-none" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }} referrerPolicy="no-referrer" />
+                    {/* Transparent overlay to catch long-presses and right clicks without triggering image menu */}
+                    <div className="absolute inset-0 z-0 bg-transparent" onContextMenu={(e) => e.preventDefault()} />
+                    
+                    <div className="absolute top-4 right-4 z-10 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-brand-700 dark:text-brand-400 shadow-lg">
                       {idx === 0 ? t("PRIMARY POSE", "PRIMARY POSE") : `${t("POSE", "POSE")} ${idx + 1}`}
                     </div>
 

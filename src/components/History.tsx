@@ -118,8 +118,9 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {photoshoot.results.map((result, idx) => (
                 <div key={idx} className="relative group aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img src={result} alt={t(`Result ${idx + 1}`, `Result ${idx + 1}`)} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <img src={result} alt={t(`Result ${idx + 1}`, `Result ${idx + 1}`)} className="w-full h-full object-cover select-none pointer-events-none" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }} />
+                  <div className="absolute inset-0 z-0 bg-transparent" onContextMenu={(e) => e.preventDefault()} />
+                  <div className="absolute inset-0 z-10 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <a 
                       href={result} 
                       download={`hyperlook-history-${photoshoot.id}-${idx}.png`}
