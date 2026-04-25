@@ -17,7 +17,7 @@ async function cleanupOldJobs() {
     // We need to identify any queues used in the app. 
     // Looking at the codebase standard, common queue name is 'image-generation' or similar.
     // To be safe, we can try to clean the known ones or list types if possible.
-    const queueNames = ['image-generation', 'default'];
+    const queueNames = ['photoshoot', 'image-generation', 'default'];
 
     for (const name of queueNames) {
       console.log(`Cleaning queue: ${name}`);

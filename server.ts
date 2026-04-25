@@ -20,30 +20,53 @@ console.log('Worker URL configured as:', WORKER_URL);
 
 import { GoogleGenAI } from "@google/genai";
 
+async function resizeImageForAnalysis(base64: string, maxDim = 800): Promise<string> {
+  try {
+    const buffer = Buffer.from(base64, 'base64');
+    const resizedBuffer = await sharp(buffer)
+      .resize(maxDim, maxDim, { fit: 'inside', withoutEnlargement: true })
+      .jpeg({ quality: 80 })
+      .toBuffer();
+    return resizedBuffer.toString('base64');
+  } catch (e) {
+    console.error("Resize failed, using original", e);
+    return base64;
+  }
+}
+
 async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: number, maxRetries = 3) {
   let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
   if (!apiKey) throw new Error("No Gemini API key found");
   
   const ai = new GoogleGenAI({ apiKey });
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      console.log(`Gemini call attempt ${attempt}/${maxRetries} for model ${model}`);
-      
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: requestBody.contents,
-        config: requestBody.generationConfig
-      });
-      
-      return response;
-      
-    } catch (error: any) {
-      if (attempt === maxRetries) throw error;
-      const waitTime = attempt * 5000;
-      console.log(`Error: ${error.message}. Retrying in ${waitTime/1000}s...`);
-      await new Promise(r => setTimeout(r, waitTime));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`Gemini call attempt ${attempt}/${maxRetries} for model ${model}`);
+        
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: requestBody.contents,
+          config: requestBody.generationConfig
+        });
+        
+        return response;
+        
+      } catch (error: any) {
+        if (error.name === 'AbortError') throw new Error(`Request timed out after ${timeoutMs/1000}s`);
+
+        if (attempt === maxRetries) throw error;
+        const waitTime = attempt * 5000;
+        console.log(`Error: ${error.message}. Retrying in ${waitTime/1000}s...`);
+        await new Promise(r => setTimeout(r, waitTime));
+      }
     }
+  } finally {
+    clearTimeout(timeout);
   }
   throw new Error('AI servers are busy. Please try again in 2 minutes.');
 }
@@ -765,7 +788,9 @@ if (WORKER_MODE) {
         
         // Non-image: use existing Gemini logic below
         console.log('📝 Using text model');
-        const base64Image = req.body.base64Image || req.body.image; // Keep existing variable for fallback below
+        const rawImage = req.body.image || req.body.base64Image || "";
+        const base64Image = await resizeImageForAnalysis(String(rawImage).includes(',') ? String(rawImage).split(',')[1] : String(rawImage));
+        
         let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
 
         console.log("Analyze endpoint - API Key prefix:", apiKey ? apiKey.substring(0, 8) + "..." : "none");

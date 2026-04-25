@@ -30,7 +30,6 @@ Return the result in JSON format.`;
         body: JSON.stringify({
           model: 'gemini-3-flash-preview',
           image: base64Image,
-          base64Image: base64Image,
           prompt: prompt,
         }),
       });
@@ -296,7 +295,6 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           prompt: finalPrompt,
           model: "gemini-3-flash-preview",
           image: mainImageBase64,
-          base64Image: mainImageBase64,
           referenceImagesBase64: allReferenceImages,
           aspectRatio,
           quality,
