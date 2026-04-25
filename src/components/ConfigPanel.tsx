@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Zap, Layout, User, CheckCircle2, Info, ChevronLeft } from "lucide-react";
+import { useLanguage } from "../lib/LanguageContext";
 
 interface ConfigPanelProps {
   config: {
@@ -17,40 +18,42 @@ interface ConfigPanelProps {
   generatedPoses?: string[];
 }
 
-const QUALITY_OPTIONS = [
-  { id: "1K", label: "1K Resolution", desc: "1024x1024 - Fast processing, moderate low fidelity but clearly visible", icon: Zap },
-  { id: "2K", label: "2K Resolution", desc: "2048x2048 - Moderate high fidelity, balanced processing", icon: Zap },
-  { id: "4K", label: "4K Resolution", desc: "4096x4096 - Highest fidelity, utmost detailing", icon: Zap },
-];
-
-const BACKDROP_OPTIONS = [
-  { id: "Minimalist Botanical Studio", label: "Minimal Botanical", desc: "Clean white studio, soft shadows, sleek wooden stool, tall olive tree in a terracotta pot", icon: Layout },
-  { id: "Industrial Loft Studio", label: "Industrial Loft", desc: "Exposed brick wall, large arched windows, concrete floor, vintage leather armchair", icon: Layout },
-  { id: "Bohemian Indoor Studio", label: "Bohemian Studio", desc: "Macrame wall hangings, a rattan chair, lush monstera plants, warm sunlight", icon: Layout },
-  { id: "Vintage Elegance Studio", label: "Vintage Elegance", desc: "Ornate wainscoting, velvet chaise lounge, antique brass floor lamp, subtle floral arrangements", icon: Layout },
-  { id: "Modern Geometric Studio", label: "Modern Geometric", desc: "Abstract textured walls with arched alcoves, sculptural pedestal, dried pampas grass", icon: Layout },
-  { id: "Earthy Terracotta Studio", label: "Earthy Terracotta", desc: "Warm terracotta textured walls, woven rug, wooden bench, desert cacti props", icon: Layout },
-];
-
-const POSE_OPTIONS = [
-  { id: "Front Full Body", label: "Front Full", desc: "Professional front-facing full body pose", icon: User },
-  { id: "Back Full Body", label: "Back Full", desc: "Detailed back view full body pose", icon: User },
-  { id: "Side Pose", label: "Side Pose", desc: "Elegant side profile full body pose", icon: User },
-  { id: "Half Portrait", label: "Half Portrait", desc: "Focusing top part above waist", icon: User },
-  { id: "Sitting Pose", label: "Sitting", desc: "Relaxed professional sitting pose", icon: User },
-  { id: "Walking Pose", label: "Walking", desc: "Dynamic professional walking gesture", icon: User },
-  { id: "Hands in Pockets", label: "Hands in Pockets", desc: "Casual pose with both hands correctly placed in garment pockets", icon: User },
-  { id: "Product Focus", label: "Product Focus", desc: "Close-up detail shot highlighting only the specific input garment", icon: User },
-];
-
-const ASPECT_RATIOS = [
-  { id: "3:4", label: "3:4 (Portrait)", desc: "Ideal for fashion & e-commerce", icon: Layout },
-  { id: "1:1", label: "1:1 (Square)", desc: "Perfect for Instagram feeds", icon: Layout },
-  { id: "4:3", label: "4:3 (Landscape)", desc: "Wide view for lookbooks", icon: Layout },
-  { id: "9:16", label: "9:16 (Story)", desc: "Full vertical for Reels/Stories", icon: Layout },
-];
-
 export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLocked, generatedPoses = [] }: ConfigPanelProps) {
+  const { t } = useLanguage();
+
+  const QUALITY_OPTIONS = [
+    { id: "1K", label: t("1K Resolution", "1K Resolution"), desc: t("1024x1024 - Fast processing, moderate low fidelity but clearly visible", "1024x1024 - Fast processing, moderate low fidelity but clearly visible"), icon: Zap },
+    { id: "2K", label: t("2K Resolution", "2K Resolution"), desc: t("2048x2048 - Moderate high fidelity, balanced processing", "2048x2048 - Moderate high fidelity, balanced processing"), icon: Zap },
+    { id: "4K", label: t("4K Resolution", "4K Resolution"), desc: t("4096x4096 - Highest fidelity, utmost detailing", "4096x4096 - Highest fidelity, utmost detailing"), icon: Zap },
+  ];
+
+  const BACKDROP_OPTIONS = [
+    { id: "Minimalist Botanical Studio", label: t("Minimal Botanical", "Minimal Botanical"), desc: t("Clean white studio, soft shadows, sleek wooden stool, tall olive tree in a terracotta pot", "Clean white studio, soft shadows, sleek wooden stool, tall olive tree in a terracotta pot"), icon: Layout },
+    { id: "Industrial Loft Studio", label: t("Industrial Loft", "Industrial Loft"), desc: t("Exposed brick wall, large arched windows, concrete floor, vintage leather armchair", "Exposed brick wall, large arched windows, concrete floor, vintage leather armchair"), icon: Layout },
+    { id: "Bohemian Indoor Studio", label: t("Bohemian Studio", "Bohemian Studio"), desc: t("Macrame wall hangings, a rattan chair, lush monstera plants, warm sunlight", "Macrame wall hangings, a rattan chair, lush monstera plants, warm sunlight"), icon: Layout },
+    { id: "Vintage Elegance Studio", label: t("Vintage Elegance", "Vintage Elegance"), desc: t("Ornate wainscoting, velvet chaise lounge, antique brass floor lamp, subtle floral arrangements", "Ornate wainscoting, velvet chaise lounge, antique brass floor lamp, subtle floral arrangements"), icon: Layout },
+    { id: "Modern Geometric Studio", label: t("Modern Geometric", "Modern Geometric"), desc: t("Abstract textured walls with arched alcoves, sculptural pedestal, dried pampas grass", "Abstract textured walls with arched alcoves, sculptural pedestal, dried pampas grass"), icon: Layout },
+    { id: "Earthy Terracotta Studio", label: t("Earthy Terracotta", "Earthy Terracotta"), desc: t("Warm terracotta textured walls, woven rug, wooden bench, desert cacti props", "Warm terracotta textured walls, woven rug, wooden bench, desert cacti props"), icon: Layout },
+  ];
+
+  const POSE_OPTIONS = [
+    { id: "Front Full Body", label: t("Front Full", "Front Full"), desc: t("Professional front-facing full body pose", "Professional front-facing full body pose"), icon: User },
+    { id: "Back Full Body", label: t("Back Full", "Back Full"), desc: t("Detailed back view full body pose", "Detailed back view full body pose"), icon: User },
+    { id: "Side Pose", label: t("Side Pose", "Side Pose"), desc: t("Elegant side profile full body pose", "Elegant side profile full body pose"), icon: User },
+    { id: "Half Portrait", label: t("Half Portrait", "Half Portrait"), desc: t("Focusing top part above waist", "Focusing top part above waist"), icon: User },
+    { id: "Sitting Pose", label: t("Sitting", "Sitting"), desc: t("Relaxed professional sitting pose", "Relaxed professional sitting pose"), icon: User },
+    { id: "Walking Pose", label: t("Walking", "Walking"), desc: t("Dynamic professional walking gesture", "Dynamic professional walking gesture"), icon: User },
+    { id: "Hands in Pockets", label: t("Hands in Pockets", "Hands in Pockets"), desc: t("Casual pose with both hands correctly placed in garment pockets", "Casual pose with both hands correctly placed in garment pockets"), icon: User },
+    { id: "Product Focus", label: t("Product Focus", "Product Focus"), desc: t("Close-up detail shot highlighting only the specific input garment", "Close-up detail shot highlighting only the specific input garment"), icon: User },
+  ];
+
+  const ASPECT_RATIOS = [
+    { id: "3:4", label: t("3:4 (Portrait)", "3:4 (Portrait)"), desc: t("Ideal for fashion & e-commerce", "Ideal for fashion & e-commerce"), icon: Layout },
+    { id: "1:1", label: t("1:1 (Square)", "1:1 (Square)"), desc: t("Perfect for Instagram feeds", "Perfect for Instagram feeds"), icon: Layout },
+    { id: "4:3", label: t("4:3 (Landscape)", "4:3 (Landscape)"), desc: t("Wide view for lookbooks", "Wide view for lookbooks"), icon: Layout },
+    { id: "9:16", label: t("9:16 (Story)", "9:16 (Story)"), desc: t("Full vertical for Reels/Stories", "Full vertical for Reels/Stories"), icon: Layout },
+  ];
+
   const togglePose = (poseId: string) => {
     const currentPoses = config.poses || [];
     if (currentPoses.includes(poseId)) {
@@ -68,7 +71,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
           className="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors font-medium -mt-2"
         >
           <ChevronLeft className="w-5 h-5" />
-          Back to Garment Details
+          {t("Back to Garment Details", "Back to Garment Details")}
         </button>
       )}
 
@@ -76,7 +79,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
         <div className="bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-900/40 rounded-2xl p-4 md:p-6 flex items-start gap-4">
           <Info className="w-6 h-6 text-brand-600 dark:text-brand-400 shrink-0 mt-1" />
           <p className="text-brand-800 dark:text-brand-200 text-sm leading-relaxed">
-            <strong>Magic Reference Active:</strong> You are generating variations of an existing image. Backdrop and Garment Details are locked to ensure 100% consistency. You can only change Poses, Aspect Ratio, and Quality.
+            <strong>{t("Magic Reference Active:", "Magic Reference Active:")}</strong> {t("You are generating variations of an existing image. Backdrop and Garment Details are locked to ensure 100% consistency. You can only change Poses, Aspect Ratio, and Quality.", "You are generating variations of an existing image. Backdrop and Garment Details are locked to ensure 100% consistency. You can only change Poses, Aspect Ratio, and Quality.")}
           </p>
         </div>
       )}
@@ -87,7 +90,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
           <div className="w-10 h-10 bg-brand-100 dark:bg-brand-900/30 rounded-xl flex items-center justify-center">
             <Layout className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           </div>
-          <h3 className="text-2xl font-bold text-slate-800 dark:text-white">Select Backdrop</h3>
+          <h3 className="text-2xl font-bold text-slate-800 dark:text-white">{t("Select Backdrop", "Select Backdrop")}</h3>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {BACKDROP_OPTIONS.map((opt) => (
@@ -125,7 +128,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
             <div className="w-10 h-10 bg-brand-100 dark:bg-brand-900/30 rounded-xl flex items-center justify-center">
               <User className="w-5 h-5 text-brand-600 dark:text-brand-400" />
             </div>
-            <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Select Poses</h3>
+            <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">{t("Select Poses", "Select Poses")}</h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {POSE_OPTIONS.map((opt) => {
@@ -146,7 +149,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
                   {isGenerated && !isSelected && (
                     <div className="absolute top-2 left-2 right-2 flex justify-center">
                       <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-                        Generated
+                        {t("Generated", "Generated")}
                       </span>
                     </div>
                   )}
@@ -176,10 +179,10 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
           <div className="w-10 h-10 bg-brand-100 dark:bg-brand-900/30 rounded-xl flex items-center justify-center">
             <Layout className="w-5 h-5 text-brand-600 dark:text-brand-400" />
           </div>
-          <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Aspect Ratio</h3>
+          <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">{t("Aspect Ratio", "Aspect Ratio")}</h3>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {(config.garmentType === 'design_print' ? [{id: "16:9", label: "21:9 (Digital Print)", desc: "Long stretch horizontal template", icon: Layout}] : ASPECT_RATIOS).map((opt) => (
+          {(config.garmentType === 'design_print' ? [{id: "16:9", label: t("21:9 (Digital Print)", "21:9 (Digital Print)"), desc: t("Long stretch horizontal template", "Long stretch horizontal template"), icon: Layout}] : ASPECT_RATIOS).map((opt) => (
             <button
               key={opt.id}
               onClick={() => onChange("aspectRatio", opt.id)}
@@ -205,7 +208,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
         <div className="bg-brand-50 dark:bg-brand-900/20 border border-brand-100 dark:border-brand-900/40 rounded-2xl p-4 md:p-5 flex items-start gap-4">
           <Info className="w-6 h-6 text-brand-600 dark:text-brand-400 shrink-0 mt-1" />
           <p className="text-brand-800 dark:text-brand-200 text-xs md:text-sm leading-relaxed">
-            <strong>Model Consistency:</strong> Generating multiple poses for the same product will maintain model consistency (face, hairstyle, and garment details) across all images.
+            <strong>{t("Model Consistency:", "Model Consistency:")}</strong> {t("Generating multiple poses for the same product will maintain model consistency (face, hairstyle, and garment details) across all images.", "Generating multiple poses for the same product will maintain model consistency (face, hairstyle, and garment details) across all images.")}
           </p>
         </div>
       )}
@@ -220,7 +223,7 @@ export default function ConfigPanel({ config, onChange, onGenerate, onBack, isLo
               : "bg-brand-600 text-white hover:bg-brand-700 shadow-brand-200 dark:shadow-none"
           }`}
         >
-          {config.garmentType === 'design_print' ? 'Generate Template' : 'Generate Photoshoot'}
+          {config.garmentType === 'design_print' ? t('Generate Template', 'Generate Template') : t('Generate Photoshoot', 'Generate Photoshoot')}
           <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
         </button>
       </div>

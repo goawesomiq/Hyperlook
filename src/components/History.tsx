@@ -4,6 +4,7 @@ import { History as HistoryIcon, Download, RefreshCw } from "lucide-react";
 import { auth, db } from "../firebase";
 import { collection, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { useLanguage } from "../lib/LanguageContext";
 
 interface Photoshoot {
   id: string;
@@ -14,6 +15,7 @@ interface Photoshoot {
 }
 
 export default function History({ onStartCreating }: { onStartCreating: () => void }) {
+  const { t } = useLanguage();
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [photoshoots, setPhotoshoots] = useState<Photoshoot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,8 +59,8 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
     return (
       <div className="text-center py-20 max-w-md mx-auto">
         <HistoryIcon className="w-16 h-16 text-slate-200 dark:text-slate-700 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Sign in to view history</h2>
-        <p className="text-slate-500 dark:text-slate-400">Your generated photoshoots will appear here once you sign in.</p>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{t("Sign in to view history", "Sign in to view history")}</h2>
+        <p className="text-slate-500 dark:text-slate-400">{t("Your generated photoshoots will appear here once you sign in.", "Your generated photoshoots will appear here once you sign in.")}</p>
       </div>
     );
   }
@@ -75,10 +77,10 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
     return (
       <div className="text-center py-20 max-w-md mx-auto">
         <HistoryIcon className="w-16 h-16 text-slate-200 dark:text-slate-700 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">No History Yet</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-6">Your generated photoshoots will appear here.</p>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{t("No History Yet", "No History Yet")}</h2>
+        <p className="text-slate-500 dark:text-slate-400 mb-6">{t("Your generated photoshoots will appear here.", "Your generated photoshoots will appear here.")}</p>
         <button onClick={onStartCreating} className="px-8 py-3 bg-brand-600 text-white rounded-full font-bold shadow-lg hover:bg-brand-700 transition-colors dark:shadow-none">
-          Start Creating
+          {t("Start Creating", "Start Creating")}
         </button>
       </div>
     );
@@ -90,7 +92,7 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
         <div className="w-12 h-12 bg-brand-100 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 rounded-2xl flex items-center justify-center shadow-inner">
           <HistoryIcon className="w-6 h-6" />
         </div>
-        <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 dark:text-white">Your History</h2>
+        <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 dark:text-white">{t("Your History", "Your History")}</h2>
       </div>
 
       <div className="space-y-8">
@@ -103,20 +105,20 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
           >
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
-                <h3 className="font-bold text-slate-800 dark:text-white text-lg">{photoshoot.config.garmentType || "Photoshoot"}</h3>
+                <h3 className="font-bold text-slate-800 dark:text-white text-lg">{photoshoot.config.garmentType || t("Photoshoot", "Photoshoot")}</h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {photoshoot.createdAt?.toDate ? photoshoot.createdAt.toDate().toLocaleDateString() : "Recently"}
+                  {photoshoot.createdAt?.toDate ? photoshoot.createdAt.toDate().toLocaleDateString() : t("Recently", "Recently")}
                 </p>
               </div>
               <div className="px-3 py-1 bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold">
-                {photoshoot.results.length} Photos
+                {photoshoot.results.length} {t("Photos", "Photos")}
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {photoshoot.results.map((result, idx) => (
                 <div key={idx} className="relative group aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img src={result} alt={`Result ${idx + 1}`} className="w-full h-full object-cover" />
+                  <img src={result} alt={t(`Result ${idx + 1}`, `Result ${idx + 1}`)} className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <a 
                       href={result} 

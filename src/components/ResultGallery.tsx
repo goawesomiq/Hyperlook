@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Download, RefreshCcw, LayoutGrid, ArrowLeft, CheckCircle, PlusCircle, Wand2, Crown, Coins } from "lucide-react";
 import { auth } from "../firebase";
+import { useLanguage } from "../lib/LanguageContext";
 
 interface ResultGalleryProps {
   images: string[];
@@ -18,6 +19,7 @@ interface ResultGalleryProps {
 }
 
 export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNewInput, onAddMorePoses, isGenerating, progress = 0, aspectRatio = "1:1", generatingIndex = null, logo, isDesign = false }: ResultGalleryProps) {
+  const { t } = useLanguage();
   const [processingHighRes, setProcessingHighRes] = useState<{ [index: number]: '2k' | '4k' | null }>({});
   const [highResUrls, setHighResUrls] = useState<{ [index: number]: { '2k'?: string, '4k'?: string } }>({});
   const [highResProgress, setHighResProgress] = useState<{ [index: number]: number }>({});
@@ -173,13 +175,13 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
         <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto">
           <Wand2 className="w-10 h-10 text-slate-400 dark:text-slate-500" />
         </div>
-        <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">Workspace is Empty</h3>
-        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">You don't have any ongoing or completed AI processes. Please start by choosing a studio.</p>
+        <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white">{t("Workspace is Empty")}</h3>
+        <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">{t("You don't have any ongoing or completed AI processes. Please start by choosing a studio.")}</p>
         <button 
           onClick={onTryNewInput} 
           className="px-6 py-3 bg-brand-600 text-white rounded-full font-bold hover:bg-brand-700 transition-all shadow-lg shadow-brand-200 dark:shadow-none mt-4 text-sm"
         >
-          Choose Studio
+          {t("Choose Studio")}
         </button>
       </div>
     );
@@ -190,10 +192,10 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
         <div>
           <h3 className="text-xl md:text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2 md:gap-3">
-            Generated Photoshoot
+            {t("Generated Photoshoot", "Generated Photoshoot")}
             <CheckCircle className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
           </h3>
-          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 md:mt-2">Your professional photoshoot is ready. Upgrade to 4K Masterpiece for highest fidelity.</p>
+          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 md:mt-2">{t("Your professional photoshoot is ready. Upgrade to 4K Masterpiece for highest fidelity.", "Your professional photoshoot is ready. Upgrade to 4K Masterpiece for highest fidelity.")}</p>
         </div>
       </div>
 
@@ -207,8 +209,8 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
               </div>
             </div>
             <div className="text-center space-y-2 md:space-y-4 w-full max-w-md">
-              <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white">Generating Hyper-Realistic Image...</p>
-              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 md:mt-2">Applying highest fidelity studio lighting & rendering details.</p>
+              <p className="text-lg md:text-xl font-bold text-slate-800 dark:text-white">{t("Generating Hyper-Realistic Image...", "Generating Hyper-Realistic Image...")}</p>
+              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-1 md:mt-2">{t("Applying highest fidelity studio lighting & rendering details.", "Applying highest fidelity studio lighting & rendering details.")}</p>
             </div>
           </div>
         ) : (
@@ -229,13 +231,13 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                         <span className="text-xs font-bold text-brand-600 dark:text-brand-400">{Math.round(progress)}%</span>
                       </div>
                     </div>
-                    <p className="text-sm font-bold text-brand-600 dark:text-brand-400">Regenerating...</p>
+                    <p className="text-sm font-bold text-brand-600 dark:text-brand-400">{t("Regenerating...", "Regenerating...")}</p>
                   </div>
                 ) : (
                   <>
                     <img src={img} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-bold text-brand-700 dark:text-brand-400 shadow-lg">
-                      {idx === 0 ? "PRIMARY POSE" : `POSE ${idx + 1}`}
+                      {idx === 0 ? t("PRIMARY POSE", "PRIMARY POSE") : `${t("POSE", "POSE")} ${idx + 1}`}
                     </div>
 
                     <AnimatePresence>
@@ -254,8 +256,8 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                               )}
                             </div>
                           </div>
-                          <p className="text-white font-bold tracking-widest text-sm uppercase">Adding high-resolutions...</p>
-                          <p className="text-white/80 text-xs flex items-center gap-1">Processing {processingHighRes[idx]?.toUpperCase()}</p>
+                          <p className="text-white font-bold tracking-widest text-sm uppercase">{t("Adding high-resolutions...", "Adding high-resolutions...")}</p>
+                          <p className="text-white/80 text-xs flex items-center gap-1">{t("Processing", "Processing")} {processingHighRes[idx]?.toUpperCase()}</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -271,7 +273,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                   className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 h-[4.5rem]"
                 >
                   <RefreshCcw className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-tight">Try Different</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-tight">{t("Try Different", "Try Different")}</span>
                 </button>
 
                 <button
@@ -280,7 +282,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                   className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 border border-brand-100 dark:border-brand-800/50 transition-colors disabled:opacity-50 h-[4.5rem]"
                 >
                   <Download className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                  <span className="text-[9px] sm:text-[10px] font-bold text-brand-700 dark:text-brand-400 leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 text-center">Download 1K</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-brand-700 dark:text-brand-400 leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 text-center">{t("Download 1K", "Download 1K")}</span>
                   <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Coins className="w-2.5 h-2.5"/> {cost1k}</span>
                 </button>
 
@@ -290,7 +292,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                     className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/50 transition-colors h-[4.5rem]"
                   >
                     <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">Save 2K</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">{t("Save 2K", "Save 2K")}</span>
                     <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-emerald-700/60 dark:text-emerald-400/60 opacity-0"><Coins className="w-2.5 h-2.5"/> 0</span>
                   </button>
                 ) : (
@@ -300,7 +302,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                     className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 hover:from-slate-200 hover:to-slate-300 dark:hover:from-slate-700 dark:hover:to-slate-800 border border-slate-300 dark:border-slate-700 transition-colors disabled:opacity-50 h-[4.5rem]"
                   >
                     <Sparkles className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-white leading-tight">Req. 2K</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-white leading-tight">{t("Req. 2K", "Req. 2K")}</span>
                     <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Coins className="w-2.5 h-2.5"/> {cost2k}</span>
                   </button>
                 )}
@@ -311,7 +313,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                     className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-800/50 transition-colors h-[4.5rem]"
                   >
                     <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">Save 4K</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">{t("Save 4K", "Save 4K")}</span>
                     <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-emerald-700/60 dark:text-emerald-400/60 opacity-0"><Coins className="w-2.5 h-2.5"/> 0</span>
                   </button>
                 ) : (
@@ -321,7 +323,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                     className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-gradient-to-b from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-900/60 hover:from-amber-200 hover:to-amber-300 border border-amber-300 dark:border-amber-700 transition-colors disabled:opacity-50 h-[4.5rem]"
                   >
                     <Crown className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-                    <span className="text-[9px] sm:text-[10px] font-bold text-amber-800 dark:text-amber-200 drop-shadow-sm leading-tight">Req. 4K</span>
+                    <span className="text-[9px] sm:text-[10px] font-bold text-amber-800 dark:text-amber-200 drop-shadow-sm leading-tight">{t("Req. 4K", "Req. 4K")}</span>
                     <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-800 dark:text-amber-400 drop-shadow-sm"><Coins className="w-2.5 h-2.5 fill-current"/> {cost4k}</span>
                   </button>
                 )}
@@ -339,14 +341,14 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
               className="flex-1 max-w-[200px] py-3.5 sm:py-4 rounded-full font-bold text-sm sm:text-lg transition-all flex items-center justify-center gap-2 shadow-xl bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-900 dark:hover:bg-slate-600 hover:scale-105"
             >
               <PlusCircle className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span className="whitespace-nowrap">More Poses</span>
+              <span className="whitespace-nowrap">{t("More Poses", "More Poses")}</span>
             </button>
             <button
               onClick={onTryNewInput}
               className="flex-1 max-w-[200px] py-3.5 sm:py-4 rounded-full font-bold text-sm sm:text-lg transition-all flex items-center justify-center gap-2 shadow-xl bg-brand-600 text-white hover:bg-brand-700 hover:scale-105 shadow-brand-200 dark:shadow-none"
             >
               <Wand2 className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span className="whitespace-nowrap">New Input</span>
+              <span className="whitespace-nowrap">{t("New Input", "New Input")}</span>
             </button>
           </div>
           
@@ -355,7 +357,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
             className="text-slate-500 dark:text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 font-medium flex items-center gap-2 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Configuration
+            {t("Back to Configuration", "Back to Configuration")}
           </button>
         </div>
       )}

@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Sparkles, Shirt, Footprints, Watch, Sparkle, Smartphone, Home as HomeIcon, ArrowRight, ChevronLeft, Download, Coins, Crown } from "lucide-react";
+import { useLanguage } from "../lib/LanguageContext";
 
 interface HomeProps {
   onSelectStudio: (studioId: string) => void;
@@ -9,58 +10,60 @@ interface HomeProps {
   initialMode?: 'photography' | 'design' | 'videos';
 }
 
-const STUDIOS = [
-  { 
-    id: "garment", 
-    name: "Garment Studio", 
-    desc: "AI Photoshoots for Saree, Kurti, Western & more",
-    icon: Shirt, 
-    color: "from-pink-500 to-rose-500", 
-    active: true 
-  },
-  { 
-    id: "footwear", 
-    name: "Footwear Studio", 
-    desc: "Hyper-realistic shoe & sandal photoshoots",
-    icon: Footprints, 
-    color: "from-blue-500 to-indigo-500", 
-    active: false 
-  },
-  { 
-    id: "accessories", 
-    name: "Fashion Accessories", 
-    desc: "Jewelry, watches, bags & more",
-    icon: Watch, 
-    color: "from-amber-500 to-orange-500", 
-    active: false 
-  },
-  { 
-    id: "cosmetic", 
-    name: "Cosmetic & Beauty", 
-    desc: "Makeup, skincare & beauty product shots",
-    icon: Sparkle, 
-    color: "from-purple-500 to-fuchsia-500", 
-    active: false 
-  },
-  { 
-    id: "electronics", 
-    name: "Electronic Gadgets", 
-    desc: "Smartphones, laptops & tech accessories",
-    icon: Smartphone, 
-    color: "from-emerald-500 to-teal-500", 
-    active: false 
-  },
-  { 
-    id: "decor", 
-    name: "Home Décor", 
-    desc: "Furniture, lighting & interior styling",
-    icon: HomeIcon, 
-    color: "from-cyan-500 to-sky-500", 
-    active: false 
-  },
-];
-
 export default function Home({ onSelectStudio, banners, logo, initialMode = 'photography' }: HomeProps) {
+  const { t } = useLanguage();
+
+  const STUDIOS = [
+    { 
+      id: "garment", 
+      name: t("Garment Studio", "Garment Studio"), 
+      desc: t("AI Photoshoots for Saree, Kurti, Western & more", "AI Photoshoots for Saree, Kurti, Western & more"),
+      icon: Shirt, 
+      color: "from-pink-500 to-rose-500", 
+      active: true 
+    },
+    { 
+      id: "footwear", 
+      name: t("Footwear Studio", "Footwear Studio"), 
+      desc: t("Hyper-realistic shoe & sandal photoshoots", "Hyper-realistic shoe & sandal photoshoots"),
+      icon: Footprints, 
+      color: "from-blue-500 to-indigo-500", 
+      active: false 
+    },
+    { 
+      id: "accessories", 
+      name: t("Fashion Accessories", "Fashion Accessories"), 
+      desc: t("Jewelry, watches, bags & more", "Jewelry, watches, bags & more"),
+      icon: Watch, 
+      color: "from-amber-500 to-orange-500", 
+      active: false 
+    },
+    { 
+      id: "cosmetic", 
+      name: t("Cosmetic & Beauty", "Cosmetic & Beauty"), 
+      desc: t("Makeup, skincare & beauty product shots", "Makeup, skincare & beauty product shots"),
+      icon: Sparkle, 
+      color: "from-purple-500 to-fuchsia-500", 
+      active: false 
+    },
+    { 
+      id: "electronics", 
+      name: t("Electronic Gadgets", "Electronic Gadgets"), 
+      desc: t("Smartphones, laptops & tech accessories", "Smartphones, laptops & tech accessories"),
+      icon: Smartphone, 
+      color: "from-emerald-500 to-teal-500", 
+      active: false 
+    },
+    { 
+      id: "decor", 
+      name: t("Home Décor", "Home Décor"), 
+      desc: t("Furniture, lighting & interior styling", "Furniture, lighting & interior styling"),
+      icon: HomeIcon, 
+      color: "from-cyan-500 to-sky-500", 
+      active: false 
+    },
+  ];
+
   const [currentBanner, setCurrentBanner] = React.useState(0);
   const [appMode, setAppMode] = React.useState<'photography' | 'design' | 'videos'>(initialMode);
   const [showDesignGallery, setShowDesignGallery] = React.useState(false);
@@ -74,6 +77,12 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
     return () => clearInterval(interval);
   }, [banners]);
 
+  React.useEffect(() => {
+    if (selectedGalleryItem) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [selectedGalleryItem]);
+
   if (selectedGalleryItem) {
     return (
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto px-4 pb-20 mt-4 md:mt-8">
@@ -84,7 +93,7 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Inspiration Details</h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t("Inspiration Details", "Inspiration Details")}</h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -101,32 +110,32 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-2">{selectedGalleryItem.n}</h1>
               <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-                A highly detailed digital print inspiration. You can use this as a reference for generating your own unique variations.
+                {t("A highly detailed digital print inspiration. You can use this as a reference for generating your own unique variations.", "A highly detailed digital print inspiration. You can use this as a reference for generating your own unique variations.")}
               </p>
             </div>
 
             <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
-              <h3 className="font-bold text-sm text-slate-800 dark:text-white">Download Options</h3>
+              <h3 className="font-bold text-sm text-slate-800 dark:text-white">{t("Download Options", "Download Options")}</h3>
               <div className="grid grid-cols-3 gap-2">
                 <button
                   className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/40 border border-brand-100 dark:border-brand-800/50 transition-colors h-[4.5rem]"
                 >
                   <Download className="w-4 h-4 text-brand-600 dark:text-brand-400" />
-                  <span className="text-[9px] sm:text-[10px] font-bold text-brand-700 dark:text-brand-400 leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 text-center">Download 1K</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-brand-700 dark:text-brand-400 leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 text-center">{t("Download 1K", "Download 1K")}</span>
                   <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Coins className="w-2.5 h-2.5"/> 0.5</span>
                 </button>
                 <button
                   className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-gradient-to-b from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 hover:from-slate-200 hover:to-slate-300 dark:hover:from-slate-700 dark:hover:to-slate-800 border border-slate-300 dark:border-slate-700 transition-colors h-[4.5rem]"
                 >
                   <Sparkles className="w-4 h-4 text-slate-700 dark:text-slate-300" />
-                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-white leading-tight">Req. 2K</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-white leading-tight">{t("Req. 2K", "Req. 2K")}</span>
                   <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Coins className="w-2.5 h-2.5"/> 1</span>
                 </button>
                 <button
                   className="flex flex-col items-center justify-center gap-0.5 py-2 px-0.5 rounded-2xl bg-gradient-to-b from-amber-100 to-amber-200 dark:from-amber-900/40 dark:to-amber-900/60 hover:from-amber-200 hover:to-amber-300 border border-amber-300 dark:border-amber-700 transition-colors h-[4.5rem]"
                 >
                   <Crown className="w-4 h-4 text-amber-700 dark:text-amber-400" />
-                  <span className="text-[9px] sm:text-[10px] font-bold text-amber-800 dark:text-amber-200 drop-shadow-sm leading-tight">Req. 4K</span>
+                  <span className="text-[9px] sm:text-[10px] font-bold text-amber-800 dark:text-amber-200 drop-shadow-sm leading-tight">{t("Req. 4K", "Req. 4K")}</span>
                   <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-800 dark:text-amber-400 drop-shadow-sm"><Coins className="w-2.5 h-2.5 fill-current"/> 2</span>
                 </button>
               </div>
@@ -136,7 +145,7 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
               onClick={() => { setSelectedGalleryItem(null); onSelectStudio('design_print_studio'); }}
               className="w-full py-3 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl font-bold hover:opacity-90 shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
-              <Sparkles className="w-4 h-4" /> Use as Base for Generation
+              <Sparkles className="w-4 h-4" /> {t("Use as Base for Generation", "Use as Base for Generation")}
             </button>
           </div>
         </div>
@@ -153,19 +162,19 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
             onClick={() => { setAppMode('photography'); setShowDesignGallery(false); }}
             className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-all whitespace-nowrap ${appMode === 'photography' ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
-            Product Photography
+            {t("Product Photography", "Product Photography")}
           </button>
           <button
             onClick={() => setAppMode('design')}
             className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-all whitespace-nowrap ${appMode === 'design' ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
-            Design
+            {t("Design", "Design")}
           </button>
           <button
             onClick={() => { setAppMode('videos'); setShowDesignGallery(false); }}
             className={`px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-semibold transition-all whitespace-nowrap ${appMode === 'videos' ? 'bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
           >
-            Videos
+            {t("Videos", "Videos")}
           </button>
         </div>
       </div>
@@ -223,7 +232,7 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
               animate={{ opacity: 1, y: 0 }}
               className="text-xl md:text-2xl lg:text-3xl font-serif font-bold text-slate-900 dark:text-white leading-tight"
             >
-              Choose Your <span className="gradient-text italic">Product Studio</span>
+              {t("Choose Your", "Choose Your")} <span className="gradient-text italic">{t("Product Studio", "Product Studio")}</span>
             </motion.h1>
             
             <motion.p
@@ -232,7 +241,7 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
               transition={{ delay: 0.1 }}
               className="text-xs md:text-sm text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-4 md:px-0"
             >
-              Select a specialized AI studio to create professional, high-fidelity photoshoots for your brand.
+              {t("Select a specialized AI studio to create professional, high-fidelity photoshoots for your brand.", "Select a specialized AI studio to create professional, high-fidelity photoshoots for your brand.")}
             </motion.p>
           </section>
 
@@ -274,11 +283,11 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
 
                   {studio.active ? (
                     <div className="mt-auto flex items-center gap-1 text-brand-600 dark:text-brand-400 font-bold text-[10px] md:text-xs group-hover:gap-1.5 transition-all">
-                      Enter Studio <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
+                      {t("Enter Studio", "Enter Studio")} <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
                     </div>
                   ) : (
                     <div className="mt-auto text-slate-400 dark:text-slate-500 font-bold text-[9px] md:text-[10px] uppercase tracking-widest">
-                      Coming Soon
+                      {t("Coming Soon", "Coming Soon")}
                     </div>
                   )}
 
@@ -286,7 +295,7 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
                   {!studio.active && (
                     <div className="absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                       <div className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-1.5 rounded-full font-bold text-[10px] md:text-xs shadow-xl transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                        Coming Soon
+                        {t("Coming Soon", "Coming Soon")}
                       </div>
                     </div>
                   )}
@@ -310,8 +319,8 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
                   ))}
                 </div>
                 <div>
-                  <p className="text-xs md:text-sm font-bold text-slate-800 dark:text-white">Trusted by 10,000+ Fashion Brands</p>
-                  <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">Generating 50,000+ photoshoots daily with 99% satisfaction.</p>
+                  <p className="text-xs md:text-sm font-bold text-slate-800 dark:text-white">{t("Trusted by 10,000+ Fashion Brands", "Trusted by 10,000+ Fashion Brands")}</p>
+                  <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">{t("Generating 50,000+ photoshoots daily with 99% satisfaction.", "Generating 50,000+ photoshoots daily with 99% satisfaction.")}</p>
                 </div>
               </div>
             </div>
@@ -329,7 +338,7 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
               className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full text-[9px] md:text-xs font-bold border border-indigo-100 dark:border-indigo-800/50 shadow-sm"
             >
               <Sparkles className="w-3 h-3 md:w-3 md:h-3" />
-              <span>Hyperlook AI Design Studio</span>
+              <span>{t("Hyperlook AI Design Studio", "Hyperlook AI Design Studio")}</span>
             </motion.div>
             
             <motion.h1
@@ -337,8 +346,8 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
               animate={{ opacity: 1, y: 0 }}
               className="text-xl md:text-2xl lg:text-3xl font-serif font-bold text-slate-900 dark:text-white leading-tight"
             >
-              Transform Garments into <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500 italic">Digital Prints</span>
+              {t("Transform Garments into", "Transform Garments into")} <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500 italic">{t("Digital Prints", "Digital Prints")}</span>
             </motion.h1>
             
             <motion.p
@@ -347,7 +356,7 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
               transition={{ delay: 0.1 }}
               className="text-xs md:text-sm text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed"
             >
-              Upload any design to generate a high-fidelity 21:9 stretch digital print ready for manufacturing, or find inspirations for your next trend.
+              {t("Upload any design to generate a high-fidelity 21:9 stretch digital print ready for manufacturing, or find inspirations for your next trend.", "Upload any design to generate a high-fidelity 21:9 stretch digital print ready for manufacturing, or find inspirations for your next trend.")}
             </motion.p>
           </section>
 
@@ -366,11 +375,11 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
                   <Shirt className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Digital Print Studio</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Instantly generate high-fidelity 21:9 digital prints from any fabric or kurti design.</p>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{t("Digital Print Studio", "Digital Print Studio")}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("Instantly generate high-fidelity 21:9 digital prints from any fabric or kurti design.", "Instantly generate high-fidelity 21:9 digital prints from any fabric or kurti design.")}</p>
                 </div>
                 <div className="mt-auto px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full font-bold text-xs uppercase tracking-widest group-hover:bg-indigo-600 dark:group-hover:bg-indigo-400 flex items-center gap-2 transition-colors">
-                  Start Generating <ArrowRight className="w-4 h-4" />
+                  {t("Start Generating", "Start Generating")} <ArrowRight className="w-4 h-4" />
                 </div>
               </motion.div>
 
@@ -387,11 +396,11 @@ export default function Home({ onSelectStudio, banners, logo, initialMode = 'pho
                   <Sparkle className="w-8 h-8" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">Inspirations & Ideas</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Discover handpicked trend ideas and ready-to-use concepts for manufacturers.</p>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{t("Inspirations & Ideas", "Inspirations & Ideas")}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("Discover handpicked trend ideas and ready-to-use concepts for manufacturers.", "Discover handpicked trend ideas and ready-to-use concepts for manufacturers.")}</p>
                 </div>
                 <div className="mt-auto px-6 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-full font-bold text-xs uppercase tracking-widest group-hover:bg-fuchsia-100 dark:group-hover:bg-fuchsia-900/50 flex items-center gap-2 transition-colors">
-                  Explore Gallery <ArrowRight className="w-4 h-4" />
+                  {t("Explore Gallery", "Explore Gallery")} <ArrowRight className="w-4 h-4" />
                 </div>
               </motion.div>
             </section>

@@ -2,67 +2,69 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, Zap, Star, Crown, ArrowRight, Loader2 } from 'lucide-react';
 import { auth } from '../firebase';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface PricingProps {
   onClose: () => void;
   onLoginRequest: () => void;
 }
 
-const PLANS = [
-  {
-    id: 'basic',
-    name: 'Basic',
-    icon: <Zap className="w-6 h-6 text-blue-500" />,
-    price: 799,
-    coins: 40,
-    coinPrice: 20,
-    color: 'blue',
-    popular: false,
-    features: [
-      '40 Standard (1K) Generations',
-      '~26 High-Res (2K) Generations',
-      '20 Ultra (4K) Generations',
-      'Standard Support'
-    ]
-  },
-  {
-    id: 'plus',
-    name: 'Plus',
-    icon: <Star className="w-6 h-6 text-amber-500" />,
-    price: 1749,
-    coins: 100,
-    coinPrice: 17.5,
-    color: 'amber',
-    popular: true,
-    features: [
-      '100 Standard (1K) Generations',
-      '~66 High-Res (2K) Generations',
-      '50 Ultra (4K) Generations',
-      'Priority Support',
-      'Most Preferred Plan'
-    ]
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    icon: <Crown className="w-6 h-6 text-purple-500" />,
-    price: 3499,
-    coins: 250,
-    coinPrice: 14,
-    color: 'purple',
-    popular: false,
-    features: [
-      '250 Standard (1K) Generations',
-      '~166 High-Res (2K) Generations',
-      '125 Ultra (4K) Generations',
-      '24/7 Premium Support',
-      'Best Value per Coin'
-    ]
-  }
-];
-
 export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
+  const { t } = useLanguage();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const PLANS = [
+    {
+      id: 'basic',
+      name: t('Basic', 'Basic'),
+      icon: <Zap className="w-6 h-6 text-blue-500" />,
+      price: 799,
+      coins: 40,
+      coinPrice: 20,
+      color: 'blue',
+      popular: false,
+      features: [
+        t('40 Standard (1K) Generations', '40 Standard (1K) Generations'),
+        t('~26 High-Res (2K) Generations', '~26 High-Res (2K) Generations'),
+        t('20 Ultra (4K) Generations', '20 Ultra (4K) Generations'),
+        t('Standard Support', 'Standard Support')
+      ]
+    },
+    {
+      id: 'plus',
+      name: t('Plus', 'Plus'),
+      icon: <Star className="w-6 h-6 text-amber-500" />,
+      price: 1749,
+      coins: 100,
+      coinPrice: 17.5,
+      color: 'amber',
+      popular: true,
+      features: [
+        t('100 Standard (1K) Generations', '100 Standard (1K) Generations'),
+        t('~66 High-Res (2K) Generations', '~66 High-Res (2K) Generations'),
+        t('50 Ultra (4K) Generations', '50 Ultra (4K) Generations'),
+        t('Priority Support', 'Priority Support'),
+        t('Most Preferred Plan', 'Most Preferred Plan')
+      ]
+    },
+    {
+      id: 'pro',
+      name: t('Pro', 'Pro'),
+      icon: <Crown className="w-6 h-6 text-purple-500" />,
+      price: 3499,
+      coins: 250,
+      coinPrice: 14,
+      color: 'purple',
+      popular: false,
+      features: [
+        t('250 Standard (1K) Generations', '250 Standard (1K) Generations'),
+        t('~166 High-Res (2K) Generations', '~166 High-Res (2K) Generations'),
+        t('125 Ultra (4K) Generations', '125 Ultra (4K) Generations'),
+        t('24/7 Premium Support', '24/7 Premium Support'),
+        t('Best Value per Coin', 'Best Value per Coin')
+      ]
+    }
+  ];
 
   const handleBuy = async (plan: typeof PLANS[0]) => {
     if (!auth.currentUser) {
@@ -146,7 +148,7 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div className="text-white">
-            <h2 className="text-3xl md:text-4xl font-bold mb-2">Choose Your Plan</h2>
+            <h2 className="text-3xl md:text-4xl font-bold mb-2">{t('Choose Your Plan', 'Choose Your Plan')}</h2>
           </div>
           <button 
             onClick={onClose}
@@ -170,7 +172,7 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
             >
               {plan.popular && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-500 text-white px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider">
-                  Most Demanded
+                  {t('Most Demanded', 'Most Demanded')}
                 </div>
               )}
 
@@ -180,7 +182,7 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
                 </div>
                 <div>
                   <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{plan.name}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">{plan.coins} Coins</p>
+                  <p className="text-slate-500 dark:text-slate-400 font-medium">{plan.coins} {t('Coins', 'Coins')}</p>
                 </div>
               </div>
 
@@ -189,7 +191,7 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
                   <span className="text-4xl font-bold text-slate-900 dark:text-white">₹{plan.price}</span>
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Just ₹{plan.coinPrice} per coin
+                  {t('Just', 'Just')} ₹{plan.coinPrice} {t('per coin', 'per coin')}
                 </p>
               </div>
 
@@ -215,7 +217,7 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
                   <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   <>
-                    Buy {plan.name} <ArrowRight className="w-5 h-5" />
+                    {t('Buy', 'Buy')} {plan.name} <ArrowRight className="w-5 h-5" />
                   </>
                 )}
               </button>
@@ -224,12 +226,12 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
         </div>
 
         <div className="mt-12 text-center bg-slate-800 rounded-2xl p-8 border border-slate-700">
-          <h3 className="text-2xl font-bold text-white mb-2">Enterprise Plan</h3>
+          <h3 className="text-2xl font-bold text-white mb-2">{t('Enterprise Plan', 'Enterprise Plan')}</h3>
           <p className="text-slate-300 mb-6 max-w-2xl mx-auto">
-            Need more than 250 coins? Get custom pricing, dedicated support, and API access for high-volume generation.
+            {t('Need more than 250 coins? Get custom pricing, dedicated support, and API access for high-volume generation.', 'Need more than 250 coins? Get custom pricing, dedicated support, and API access for high-volume generation.')}
           </p>
           <button className="bg-white text-slate-900 px-8 py-3 rounded-full font-bold hover:bg-slate-100 transition-colors">
-            Contact Us
+            {t('Contact Us', 'Contact Us')}
           </button>
         </div>
       </div>

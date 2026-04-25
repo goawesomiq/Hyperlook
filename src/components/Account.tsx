@@ -7,7 +7,7 @@ import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, orderB
 import { db } from "../firebase";
 import { Coins, Clock } from "lucide-react";
 
-export default function Account({ onNavigate, onShowPricing, credits }: { onNavigate: (page: any) => void, onShowPricing: () => void, credits: number }) {
+export default function Account({ onNavigate, onShowPricing, credits, onNewUser }: { onNavigate: (page: any) => void, onShowPricing: () => void, credits: number, onNewUser?: () => void }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [showPolicies, setShowPolicies] = useState(false);
   const [payments, setPayments] = useState<any[]>([]);
@@ -72,16 +72,17 @@ export default function Account({ onNavigate, onShowPricing, credits }: { onNavi
         const userDoc = await getDoc(userRef);
         
         if (!userDoc.exists()) {
-          // Grant 5 free coins to newly registered users
+          // Grant 10 free coins to newly registered users
           await setDoc(userRef, {
             uid: result.user.uid,
             email: result.user.email,
             displayName: result.user.displayName,
             photoURL: result.user.photoURL,
             createdAt: serverTimestamp(),
-            credits: 5,
+            credits: 10,
             lastPlan: "Starter (Free)"
           });
+          if (onNewUser) onNewUser();
         } else {
           // Just update profile data on successive logins without touching coins
           await setDoc(userRef, {

@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { Check } from "lucide-react";
+import { useLanguage } from "../lib/LanguageContext";
 
 interface StepIndicatorProps {
   currentStep: number;
@@ -8,6 +9,7 @@ interface StepIndicatorProps {
 }
 
 export default function StepIndicator({ currentStep, steps, progress }: StepIndicatorProps) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center w-full max-w-sm mx-auto py-0">
       <div className="flex items-center justify-center w-full px-4 mb-1">
@@ -56,7 +58,7 @@ export default function StepIndicator({ currentStep, steps, progress }: StepIndi
           className="text-[10px] font-bold text-brand-600 flex items-center gap-1.5 mt-5 md:mt-6"
         >
           <div className="w-1.5 h-1.5 bg-brand-500 rounded-full animate-pulse" />
-          <span>{Math.round(progress)}% Progress</span>
+          <span>{Math.round(progress)}% {t("Progress", "Progress")}</span>
         </motion.div>
       )}
     </div>

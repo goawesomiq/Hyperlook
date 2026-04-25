@@ -96,5 +96,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if false; // Payments shouldn't be modifiable by users directly usually, or maybe they get updated by server? Allow admin
+      allow delete: if false;
+    }
   }
 }

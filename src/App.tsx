@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, ArrowRight, AlertCircle, RefreshCw, Home as HomeIcon, User, LogOut, ChevronLeft, Download, Wand2, Moon, Sun, Crown, Coins } from "lucide-react";
+import { Sparkles, ArrowRight, AlertCircle, RefreshCw, Home as HomeIcon, User, LogOut, ChevronLeft, Download, Wand2, Moon, Sun, Crown, Coins, Languages } from "lucide-react";
 import StepIndicator from "./components/StepIndicator";
 import ImageUploader from "./components/ImageUploader";
 import GarmentSelector from "./components/GarmentSelector";
@@ -12,6 +12,7 @@ import Account from "./components/Account";
 import HowItWorks from "./components/HowItWorks";
 import AdminDashboard from "./components/AdminDashboard";
 import Pricing from "./components/Pricing";
+import WelcomeBonusModal from "./components/WelcomeBonusModal";
 import { analyzeGarment, generatePhotoshoot, GenerationConfig } from "./lib/gemini";
 import { auth, db, storage } from "./firebase";
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
@@ -19,6 +20,7 @@ import { collection, addDoc, serverTimestamp, doc, getDoc, onSnapshot } from "fi
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { useWakeLock } from "./hooks/useWakeLock";
 import { useAntiPiracy } from "./hooks/useAntiPiracy";
+import { useLanguage, Language } from "./lib/LanguageContext";
 
 const STEPS = ["Upload", "Analyze", "Configure"];
 
@@ -55,6 +57,8 @@ export default function App() {
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
+
+  const { language, setLanguage, t } = useLanguage();
 
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   
@@ -101,6 +105,8 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [credits, setCredits] = useState<number>(0);
   const [showPricing, setShowPricing] = useState(false);
+  const [showWelcomeBonus, setShowWelcomeBonus] = useState(false);
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [pendingNavPage, setPendingNavPage] = useState<string | null>(null);
   const [homeMode, setHomeMode] = useState<'photography' | 'design' | 'videos'>('photography');
 
@@ -628,8 +634,8 @@ export default function App() {
     <div className="space-y-6 md:space-y-12">
       <div id="studio-workflow" className="space-y-6">
         <div className="flex flex-col items-center text-center space-y-2 hidden md:flex">
-          <h3 className="text-2xl font-bold text-slate-800">Photoshoot Workflow</h3>
-          <p className="text-sm text-slate-500 font-medium">Follow the steps below to create your masterpiece</p>
+          <h3 className="text-2xl font-bold text-slate-800">{t("Photoshoot Workflow")}</h3>
+          <p className="text-sm text-slate-500 font-medium">{t("Follow the steps below to create your masterpiece")}</p>
           <div className="w-12 h-1 bg-brand-200 rounded-full mt-2" />
         </div>
 
@@ -811,13 +817,19 @@ export default function App() {
               onClick={() => handleNavSelect("home")}
               className={`font-bold text-sm transition-colors ${activePage === "home" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
             >
-              Home
+              {t("Home")}
             </button>
             <button 
-              onClick={() => handleNavSelect("workspace")}
-              className={`font-bold text-sm transition-colors relative ${activePage === "workspace" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
+              onClick={() => {
+                if (mainImage || isProcessing || results.length > 0) {
+                  handleNavSelect(lastWorkspacePage);
+                } else {
+                  handleNavSelect("workspace");
+                }
+              }}
+              className={`font-bold text-sm transition-colors relative ${activePage === "workspace" || activePage === "studio" || activePage === "garment-studio" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
             >
-              Workspace
+              {t("Workspace")}
               {isProcessing && (
                 <span className="absolute -top-1 -right-3 flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span>
@@ -829,7 +841,7 @@ export default function App() {
               onClick={() => handleNavSelect("how-it-works")}
               className={`font-bold text-sm transition-colors ${activePage === "how-it-works" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
             >
-              How it Works
+              {t("How it Works")}
             </button>
           </nav>
 
@@ -840,9 +852,46 @@ export default function App() {
                 className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-xs border border-amber-200 dark:border-amber-800/50 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors mr-1"
               >
                 <Coins className="w-3.5 h-3.5" />
-                {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Unlimited ∞" : credits}
+                {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "∞" : credits}
               </button>
             )}
+            <div className="relative">
+              <button 
+                onClick={() => setShowLangDropdown(!showLangDropdown)}
+                className="w-9 h-9 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors shrink-0 font-bold text-xs"
+                title="Change Language"
+              >
+                <Languages className="w-4 h-4" />
+              </button>
+              <AnimatePresence>
+                {showLangDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                  >
+                    {[
+                      { code: 'en', label: 'English' },
+                      { code: 'hi', label: 'हिंदी' },
+                      { code: 'gu', label: 'ગુજરાતી' }
+                    ].map(lang => (
+                      <button
+                        key={lang.code}
+                        onClick={() => {
+                          setLanguage(lang.code as any);
+                          setShowLangDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm font-semibold hover:bg-brand-50 dark:hover:bg-slate-700 flex items-center justify-between transition-colors ${language === lang.code ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-slate-700/50' : 'text-slate-700 dark:text-slate-300'}`}
+                      >
+                        {lang.label}
+                        {language === lang.code && <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <button 
               onClick={toggleDarkMode}
               className="w-9 h-9 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors"
@@ -885,6 +934,42 @@ export default function App() {
               {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "∞" : credits}
             </button>
           )}
+          <div className="relative">
+            <button 
+              onClick={() => setShowLangDropdown(!showLangDropdown)}
+              className="w-8 h-8 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0 font-bold text-[10px]"
+            >
+              <Languages className="w-3 h-3" />
+            </button>
+            <AnimatePresence>
+              {showLangDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-32 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1 z-50 overflow-hidden"
+                >
+                  {[
+                    { code: 'en', label: 'English' },
+                    { code: 'hi', label: 'हिंदी' },
+                    { code: 'gu', label: 'ગુજરાતી' }
+                  ].map(lang => (
+                    <button
+                      key={lang.code}
+                      onClick={() => {
+                        setLanguage(lang.code as any);
+                        setShowLangDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 text-sm font-semibold hover:bg-brand-50 dark:hover:bg-slate-700 flex items-center justify-between transition-colors ${language === lang.code ? 'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-slate-700/50' : 'text-slate-700 dark:text-slate-300'}`}
+                    >
+                      {lang.label}
+                      {language === lang.code && <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <button onClick={toggleDarkMode} className="w-8 h-8 rounded-full bg-brand-50 dark:bg-slate-800 flex items-center justify-center text-brand-600 dark:text-brand-400">
             {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
@@ -941,7 +1026,7 @@ export default function App() {
           )}
           {activePage === "account" && (
             <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Account onNavigate={setActivePage} onShowPricing={() => setShowPricing(true)} credits={credits} />
+              <Account onNavigate={setActivePage} onShowPricing={() => setShowPricing(true)} credits={credits} onNewUser={() => setShowWelcomeBonus(true)} />
             </motion.div>
           )}
           {activePage === "admin" && (
@@ -965,7 +1050,7 @@ export default function App() {
               <div className="px-2 pt-2 pb-4">
                 <StepIndicator 
                   currentStep={currentStep} 
-                  steps={STEPS} 
+                  steps={[t("Upload", "Upload"), t("Analyze", "Analyze"), t("Configure", "Configure")]} 
                   progress={progress} 
                 />
               </div>
@@ -979,10 +1064,16 @@ export default function App() {
             className={`flex flex-col items-center gap-1 transition-colors ${activePage === "home" ? "text-brand-600" : "text-slate-400"}`}
           >
             <HomeIcon className="w-6 h-6" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Home</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">{t("Home", "Home")}</span>
           </button>
           <button 
-            onClick={() => handleNavSelect(lastWorkspacePage)}
+            onClick={() => {
+              if (mainImage || isProcessing || results.length > 0) {
+                handleNavSelect(lastWorkspacePage);
+              } else {
+                handleNavSelect("workspace");
+              }
+            }}
             className={`flex flex-col items-center gap-1 transition-colors relative ${ (activePage === "workspace" || activePage === "studio" || activePage === "garment-studio") ? "text-brand-600" : "text-slate-400"}`}
           >
             <Wand2 className="w-6 h-6" />
@@ -992,21 +1083,21 @@ export default function App() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-500"></span>
               </span>
             )}
-            <span className="text-[10px] font-bold uppercase tracking-wider">Workspace</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">{t("Workspace", "Workspace")}</span>
           </button>
           <button 
             onClick={() => handleNavSelect("how-it-works")}
             className={`flex flex-col items-center gap-1 transition-colors ${activePage === "how-it-works" ? "text-brand-600" : "text-slate-400"}`}
           >
             <Sparkles className="w-6 h-6" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">How it Works</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">{t("How it Works", "How it Works")}</span>
           </button>
           <button 
             onClick={() => handleNavSelect("account")}
             className={`flex flex-col items-center gap-1 transition-colors ${activePage === "account" ? "text-brand-600" : "text-slate-400"}`}
           >
             <User className="w-6 h-6" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Account</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider">{t("Account", "Account")}</span>
           </button>
         </div>
       </nav>
@@ -1023,7 +1114,7 @@ export default function App() {
             <div className="max-w-md mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_40px_rgba(0,0,0,0.3)] rounded-[2rem] border border-slate-100 dark:border-slate-800 pt-2 px-4 pb-4 pointer-events-auto">
               <StepIndicator 
                 currentStep={currentStep} 
-                steps={STEPS} 
+                steps={[t("Upload", "Upload"), t("Analyze", "Analyze"), t("Configure", "Configure")]} 
                 progress={progress} 
               />
             </div>
@@ -1065,6 +1156,12 @@ export default function App() {
               setActivePage("account");
             }} 
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showWelcomeBonus && (
+          <WelcomeBonusModal onClose={() => setShowWelcomeBonus(false)} />
         )}
       </AnimatePresence>
 
