@@ -1,36 +1,51 @@
-import { Queue } from 'bullmq';
+import { Queue, Worker } from 'bullmq';
 import Redis from 'ioredis';
+import dotenv from 'dotenv';
 
-async function cleanupRedisJobs() {
-  const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) {
-    console.error('REDIS_URL environment variable is not set.');
-    process.exit(1);
-  }
+dotenv.config();
 
-  console.log('Connecting to Redis...');
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-  const queue = new Queue('photoshoot', {
-    connection: { url: redisUrl },
+async function cleanupOldJobs() {
+  console.log('--- Starting Redis/BullMQ Cleanup ---');
+  
+  const connection = new Redis(REDIS_URL, {
+    maxRetriesPerRequest: null,
   });
 
   try {
-    console.log('Cleaning up completed jobs...');
-    const completedCount = await queue.clean(0, 0, 'completed');
-    console.log(`Deleted ${completedCount.length} completed jobs.`);
+    // We need to identify any queues used in the app. 
+    // Looking at the codebase standard, common queue name is 'image-generation' or similar.
+    // To be safe, we can try to clean the known ones or list types if possible.
+    const queueNames = ['image-generation', 'default'];
 
-    console.log('Cleaning up failed jobs...');
-    const failedCount = await queue.clean(0, 0, 'failed');
-    console.log(`Deleted ${failedCount.length} failed jobs.`);
+    for (const name of queueNames) {
+      console.log(`Cleaning queue: ${name}`);
+      const queue = new Queue(name, { connection });
 
-    const totalDeleted = completedCount.length + failedCount.length;
-    console.log(`Done. Total jobs deleted: ${totalDeleted}`);
+      const completed = await queue.getJobs(['completed']);
+      const failed = await queue.getJobs(['failed']);
+
+      console.log(`Found ${completed.length} completed jobs and ${failed.length} failed jobs in ${name}.`);
+
+      for (const job of completed) {
+        await job.remove();
+      }
+      for (const job of failed) {
+        await job.remove();
+      }
+
+      console.log(`Successfully removed old jobs from ${name}.`);
+      await queue.close();
+    }
+
+    console.log('--- Cleanup Finished Successfully ---');
   } catch (error) {
-    console.error('Error during cleanup:', error);
+    console.error('Cleanup failed:', error);
   } finally {
-    await queue.close();
-    console.log('Redis connection closed.');
+    connection.disconnect();
+    process.exit(0);
   }
 }
 
-cleanupRedisJobs();
+cleanupOldJobs();

@@ -12,10 +12,10 @@
     "start": "tsx server.ts",
     "worker": "tsx server.ts",
     "balanced-energy": "tsx server.ts",
+    "cleanup-redis": "tsx cleanup-redis-jobs.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit",
-    "cleanup-redis": "tsx cleanup-redis-jobs.ts"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
