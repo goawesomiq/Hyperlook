@@ -7,7 +7,6 @@ import crypto from "crypto";
 import fs from "fs";
 import { Queue, Worker } from 'bullmq';
 import { getUserCredits, updateUserCredits } from './firestoreRest';
-import sharp from 'sharp';
 import { GoogleAuth } from 'google-auth-library';
 
 const WORKER_MODE = process.env.WORKER_MODE === 'true';
@@ -19,20 +18,6 @@ console.log('Worker URL configured as:', WORKER_URL);
 // ============ HELPER FUNCTIONS ============
 
 import { GoogleGenAI } from "@google/genai";
-
-async function resizeImageForAnalysis(base64: string, maxDim = 800): Promise<string> {
-  try {
-    const buffer = Buffer.from(base64, 'base64');
-    const resizedBuffer = await sharp(buffer)
-      .resize(maxDim, maxDim, { fit: 'inside', withoutEnlargement: true })
-      .jpeg({ quality: 80 })
-      .toBuffer();
-    return resizedBuffer.toString('base64');
-  } catch (e) {
-    console.error("Resize failed, using original", e);
-    return base64;
-  }
-}
 
 async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: number, maxRetries = 3) {
   let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
@@ -304,27 +289,9 @@ async function processUpscaleJob(job: any) {
       let buffer = Buffer.from(cleanImg, 'base64');
       
       // Ensure image is at most 1,048,576 pixels (max size for optimal Vertex upscaling constraints)
-      try {
-        const imageMetadata = await sharp(buffer).metadata();
-        if (imageMetadata.width && imageMetadata.height) {
-          const totalPixels = imageMetadata.width * imageMetadata.height;
-          if (totalPixels > 1048000) {
-            console.log(`UPSCALE: Image exceeds 1MP limit (${totalPixels} pixels). Resizing to comply with Vertex constraints.`);
-            const scaleFactor = Math.sqrt(1045000 / totalPixels);
-            const newWidth = Math.floor(imageMetadata.width * scaleFactor);
-            const newHeight = Math.floor(imageMetadata.height * scaleFactor);
-            
-            console.log(`UPSCALE: Resizing from ${imageMetadata.width}x${imageMetadata.height} to ${newWidth}x${newHeight}`);
-            
-            buffer = await sharp(buffer)
-              .resize(newWidth, newHeight, { fit: 'inside' })
-              .jpeg({ quality: 98 })
-              .toBuffer();
-          }
-        }
-      } catch (sharpError) {
-        console.warn("UPSCALE: Sharp could not process image metadata, proceeding with raw buffer.", sharpError);
-      }
+      // Since sharp was causing OOM, we rely on the frontend or backend Vertex limits directly.
+      // Vertex Imagen Upscale can usually handle up to its max payload.
+      // If it fails, the error will just be caught and returned, rather than crashing the node process.
 
       const credentialsJson = JSON.parse(Buffer.from(credentialsBase64, 'base64').toString('utf-8'));
       
@@ -789,7 +756,7 @@ if (WORKER_MODE) {
         // Non-image: use existing Gemini logic below
         console.log('📝 Using text model');
         const rawImage = req.body.image || req.body.base64Image || "";
-        const base64Image = await resizeImageForAnalysis(String(rawImage).includes(',') ? String(rawImage).split(',')[1] : String(rawImage));
+        const base64Image = String(rawImage).includes(',') ? String(rawImage).split(',')[1] : String(rawImage);
         
         let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
 
