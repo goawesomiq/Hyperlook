@@ -21,7 +21,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
-      if (currentUser?.email?.toLowerCase() === "goawesomiq@gmail.com") {
+      if (currentUser?.phoneNumber === "+918888039433") {
         setIsAdmin(true);
         await loadSettings();
       } else {

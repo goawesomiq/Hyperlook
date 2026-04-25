@@ -39,7 +39,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-       return isAuthenticated() && request.auth.token.email == 'goawesomiq@gmail.com';
+       return isAuthenticated() && request.auth.token.phone_number == '+918888039433';
     }
     
     function hasRequiredFields(fields) {

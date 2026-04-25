@@ -17,13 +17,19 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
   const [activePlan, setActivePlan] = useState<string>("Free Plan");
   const [activeTab, setActiveTab] = useState<'billing' | 'history'>('billing');
 
-  const [phoneMode, setPhoneMode] = useState(false);
+  const [phoneMode, setPhoneMode] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [phoneLoading, setPhoneLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const [personalName, setPersonalName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [city, setCity] = useState("");
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -44,6 +50,9 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
         if (data.lastPlan) {
           setActivePlan(data.lastPlan.charAt(0).toUpperCase() + data.lastPlan.slice(1) + " Plan");
         }
+        if (data.personalName) setPersonalName(data.personalName);
+        if (data.businessName) setBusinessName(data.businessName);
+        if (data.city) setCity(data.city);
       }
     } catch (e) {
       console.error("Failed to fetch user details", e);
@@ -71,38 +80,20 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
     }
   };
 
-  const handleLogin = async () => {
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      
-      // Save user to Firestore if not exist
-      if (result.user) {
-        const userRef = doc(db, "users", result.user.uid);
-        const userDoc = await getDoc(userRef);
-        
-        if (!userDoc.exists()) {
-          // Grant 10 free coins to newly registered users
-          await setDoc(userRef, {
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-            createdAt: serverTimestamp(),
-            credits: 10,
-            lastPlan: "Starter (Free)"
-          });
-          if (onNewUser) onNewUser();
-        } else {
-          // Just update profile data on successive logins without touching coins
-          await setDoc(userRef, {
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-          }, { merge: true });
-        }
-      }
-    } catch (error) {
-      console.error("Login failed", error);
+      await setDoc(doc(db, "users", user.uid), {
+        personalName,
+        businessName,
+        city
+      }, { merge: true });
+      setIsEditingProfile(false);
+    } catch (e) {
+      console.error("Failed to save profile", e);
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -192,79 +183,47 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
         <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">{t("Sign in to save your generated photoshoots and access your history across devices.", "Sign in to save your generated photoshoots and access your history across devices.")}</p>
         
         <div className="space-y-4 pt-4">
-          {!phoneMode ? (
-            <>
-              <button 
-                onClick={handleLogin}
-                className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-full font-bold text-sm shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              >
-                <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
-                {t("Sign in with Google", "Sign in with Google")}
-              </button>
-              
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-200 dark:border-slate-700" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white dark:bg-slate-900 px-2 text-slate-500">{t("Or", "Or")}</span>
-                </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm text-left"
+          >
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t("Phone Verification", "Phone Verification")}</h3>
+            
+            {errorMsg && (
+              <div className="p-3 mb-4 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/50">
+                {errorMsg}
               </div>
+            )}
+            
+            <div id="recaptcha-container"></div>
 
-              <button 
-                onClick={() => setPhoneMode(true)}
-                className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-brand-600 text-white rounded-full font-bold text-sm shadow-md hover:bg-brand-700 transition-colors"
-              >
-                <Phone className="w-5 h-5" />
-                {t("Sign in with Phone", "Sign in with Phone")}
-              </button>
-            </>
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm text-left"
-            >
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t("Phone Verification", "Phone Verification")}</h3>
-              
-              {errorMsg && (
-                <div className="p-3 mb-4 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/50">
-                  {errorMsg}
+            {!otpSent ? (
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("Phone Number", "Phone Number")}</label>
+                  <input 
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    placeholder="+91 9876543210"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    required
+                  />
                 </div>
-              )}
-              
-              <div id="recaptcha-container"></div>
-
-              {!otpSent ? (
-                <form onSubmit={handleSendOtp} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("Phone Number", "Phone Number")}</label>
-                    <input 
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="+91 9876543210"
-                      className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
-                      required
-                    />
-                  </div>
-                  <button 
-                    type="submit"
-                    disabled={phoneLoading || !phoneNumber}
-                    className="w-full flex justify-center items-center gap-2 px-6 py-3 bg-brand-600 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-md hover:bg-brand-700 transition-colors"
-                  >
-                    {phoneLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {t("Send OTP", "Send OTP")}
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => { setPhoneMode(false); setErrorMsg(""); }}
-                    className="w-full text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white mt-2"
-                  >
-                    {t("Back to Options", "Back to Options")}
-                  </button>
-                </form>
-              ) : (
+                <button 
+                  type="submit"
+                  disabled={phoneLoading || !phoneNumber}
+                  className="w-full flex justify-center items-center gap-2 px-6 py-3 bg-brand-600 disabled:opacity-50 text-white rounded-xl font-bold text-sm shadow-md hover:bg-brand-700 transition-colors"
+                >
+                  {phoneLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {t("Send OTP", "Send OTP")}
+                </button>
+                <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-4 leading-relaxed">
+                  {t("Please check your SMS inbox for the OTP. We recommend using your WhatsApp number for a better experience and updates.", "Please check your SMS inbox for the OTP. We recommend using your WhatsApp number for a better experience and updates.")}
+                </p>
+              </form>
+            ) : (
                 <form onSubmit={handleVerifyOtp} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t("Enter OTP", "Enter OTP")}</label>
@@ -294,8 +253,7 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
                   </button>
                 </form>
               )}
-            </motion.div>
-          )}
+          </motion.div>
         </div>
       </div>
     );
@@ -304,9 +262,10 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-24">
       {/* User Info */}
-      <section className="flex items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full border-2 border-white dark:border-slate-700 shadow-md overflow-hidden bg-slate-100 dark:bg-slate-700">
+      <section className="bg-white dark:bg-slate-800 p-6 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-brand-500/5 rounded-bl-full -z-10" />
+        <div className="flex items-start gap-4">
+          <div className="w-16 h-16 shrink-0 rounded-full border-2 border-white dark:border-slate-700 shadow-md overflow-hidden bg-slate-100 dark:bg-slate-700">
             {user.photoURL ? (
               <img 
                 src={user.photoURL} 
@@ -320,30 +279,99 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
               </div>
             )}
           </div>
-          <div className="absolute bottom-0 right-0 w-6 h-6 bg-brand-600 text-white rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm">
-            <Settings className="w-3 h-3" />
-          </div>
-        </div>
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">{user.displayName || "User"}</h2>
-          <div className="flex items-center gap-3 mt-1 text-[11px] font-bold">
-            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-              <Coins className="w-3 h-3" />
-              {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Unlimited ∞" : `${credits} Coins`}
+          
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white truncate">
+              {personalName || user.displayName || "User"}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-wide mt-0.5 truncate">
+              {user.phoneNumber}
+            </p>
+            
+            <div className="flex items-center flex-wrap gap-2 mt-2 text-[11px] font-bold">
+              <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg">
+                <Coins className="w-3 h-3" />
+                <span>
+                  {user.phoneNumber === "+918888039433" ? "∞" : credits}
+                </span>
+              </div>
+              <div className="px-2 py-1 bg-brand-50 dark:bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-lg uppercase tracking-widest">
+                {user.phoneNumber === "+918888039433" ? "Platinum" : activePlan}
+              </div>
             </div>
-            <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
-            <span className="text-brand-600 dark:text-brand-400 uppercase tracking-widest">
-              {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Platinum" : activePlan}
-            </span>
           </div>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-1 uppercase tracking-wider">{user.email || user.phoneNumber}</p>
+          
+          <div className="flex flex-col gap-2 shrink-0">
+            <button 
+              onClick={onShowPricing}
+              className="w-full px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold hover:bg-brand-700 transition-all shadow-md shadow-brand-500/20"
+            >
+              Top Up
+            </button>
+            <button 
+              onClick={() => setIsEditingProfile(!isEditingProfile)}
+              className="w-full px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+            >
+              {isEditingProfile ? "Cancel" : "Edit Profile"}
+            </button>
+          </div>
         </div>
-        <button 
-          onClick={onShowPricing}
-          className="px-3 py-1.5 bg-brand-600 text-white rounded-full text-[10px] font-bold uppercase tracking-wider hover:bg-brand-700 transition-all shadow-md shadow-brand-500/20"
-        >
-          Top Up
-        </button>
+
+        <AnimatePresence>
+          {isEditingProfile && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-6 mt-6 border-t border-slate-100 dark:border-slate-700 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">{t("Personal Name", "Personal Name")}</label>
+                    <input 
+                      type="text" 
+                      value={personalName} 
+                      onChange={e => setPersonalName(e.target.value)} 
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      placeholder="John Doe"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">{t("Business Name", "Business Name")}</label>
+                    <input 
+                      type="text" 
+                      value={businessName} 
+                      onChange={e => setBusinessName(e.target.value)} 
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      placeholder="My Studio"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">{t("City", "City")}</label>
+                    <input 
+                      type="text" 
+                      value={city} 
+                      onChange={e => setCity(e.target.value)} 
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      placeholder="Mumbai"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button 
+                    onClick={handleSaveProfile}
+                    disabled={savingProfile}
+                    className="px-6 py-2 bg-brand-600 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md hover:bg-brand-700 transition-colors flex items-center gap-2"
+                  >
+                    {savingProfile && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {t("Save Changes", "Save Changes")}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* Tabs */}
@@ -488,7 +516,7 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
 
       {/* Menu Sections */}
       <section className="grid grid-cols-2 gap-3">
-        {user.email === "goawesomiq@gmail.com" && (
+        {user.phoneNumber === "+918888039433" && (
           <button
             onClick={() => onNavigate("admin")}
             className="col-span-2 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-purple-200 dark:border-purple-900/50 flex items-center justify-between group hover:shadow-md transition-all"

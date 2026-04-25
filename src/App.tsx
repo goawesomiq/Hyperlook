@@ -378,7 +378,7 @@ export default function App() {
     if (!mainImage || isProcessing) return;
 
     // Strict Coin Validation (Bypass for admin)
-    const isAdmin = user?.email?.toLowerCase() === "goawesomiq@gmail.com";
+    const isAdmin = user?.phoneNumber === "+918888039433";
     const requiredCredits = calculateRequiredCredits(config.poses.length);
     if (!isAdmin && credits < requiredCredits) {
       setError(`Insufficient coins. You need ${requiredCredits} coins for this generation.`);
@@ -536,7 +536,7 @@ export default function App() {
       return;
     }
 
-    const isAdmin = user?.email?.toLowerCase() === "goawesomiq@gmail.com";
+    const isAdmin = user?.phoneNumber === "+918888039433";
     const requiredCredits = calculateRequiredCredits(1); // 1 generation
     if (!isAdmin && credits < requiredCredits) {
       setError(`Insufficient coins. You need ${requiredCredits} coins for this generation.`);
@@ -852,7 +852,7 @@ export default function App() {
                 className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-xs border border-amber-200 dark:border-amber-800/50 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors mr-1"
               >
                 <Coins className="w-3.5 h-3.5" />
-                {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "∞" : credits}
+                {user.phoneNumber === "+918888039433" ? "∞" : credits}
               </button>
             )}
             <div className="relative">
@@ -931,7 +931,7 @@ export default function App() {
               className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-[10px] border border-amber-200 dark:border-amber-800/50 mr-1"
             >
               <Coins className="w-3 h-3" />
-              {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "∞" : credits}
+              {user.phoneNumber === "+918888039433" ? "∞" : credits}
             </button>
           )}
           <div className="relative">
