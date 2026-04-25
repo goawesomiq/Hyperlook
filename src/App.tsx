@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Sparkles, ArrowRight, AlertCircle, RefreshCw, Home as HomeIcon, User, LogOut, ChevronLeft, Download, Wand2, Moon, Sun, Crown } from "lucide-react";
+import { Sparkles, ArrowRight, AlertCircle, RefreshCw, Home as HomeIcon, User, LogOut, ChevronLeft, Download, Wand2, Moon, Sun, Crown, Coins } from "lucide-react";
 import StepIndicator from "./components/StepIndicator";
 import ImageUploader from "./components/ImageUploader";
 import GarmentSelector from "./components/GarmentSelector";
@@ -101,6 +101,16 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [credits, setCredits] = useState<number>(0);
   const [showPricing, setShowPricing] = useState(false);
+  const [pendingNavPage, setPendingNavPage] = useState<string | null>(null);
+  const [homeMode, setHomeMode] = useState<'photography' | 'design' | 'videos'>('photography');
+
+  const handleNavSelect = (page: string) => {
+    if (showPricing) {
+      setPendingNavPage(page);
+    } else {
+      setActivePage(page);
+    }
+  };
   const [lastWorkspacePage, setLastWorkspacePage] = useState<Page>("studio");
 
   useEffect(() => {
@@ -644,16 +654,31 @@ export default function App() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="space-y-4 md:space-y-6"
+            className="space-y-4 md:space-y-6 relative"
           >
-              <div className="text-center space-y-1.5 max-w-xl mx-auto">
+            <div className="relative mb-4">
+              <button 
+                onClick={() => {
+                  if (config.garmentType === 'design_print') {
+                    setHomeMode('design');
+                    handleNavSelect('home');
+                  } else {
+                    handleNavSelect('garment-studio');
+                  }
+                }}
+                className="absolute left-0 top-1 w-8 h-8 shrink-0 rounded-full bg-white dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-slate-700 transition-colors shadow-sm z-10"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="text-center px-10 max-w-xl mx-auto">
                 <h2 className="text-xl md:text-2xl font-serif font-bold text-slate-900 leading-tight dark:text-white">
                   Upload Your <span className="gradient-text italic">{config.garmentType === 'design_print' ? 'Design' : 'Garment'}</span>
                 </h2>
-                <p className="text-sm md:text-sm text-slate-500 dark:text-slate-400">
+                <p className="text-sm md:text-sm text-slate-500 dark:text-slate-400 mt-1.5">
                   {config.garmentType === 'design_print' ? 'Upload a fabric or garment design to create a beautiful digital print.' : 'Start by uploading a clear, raw image of your product.'}
                 </p>
               </div>
+            </div>
 
             <ImageUploader
               mainImage={mainImage}
@@ -766,7 +791,7 @@ export default function App() {
       {/* Desktop Header */}
       <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-brand-50 dark:border-slate-800 py-4 sticky top-0 z-50 hidden md:block">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActivePage("home")}>
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavSelect("home")}>
             <motion.div 
               initial={{ rotate: -180, scale: 0.5, opacity: 0 }}
               animate={isProcessing ? { rotate: 360, scale: 1, opacity: 1 } : { rotate: 0, scale: 1, opacity: 1 }}
@@ -783,13 +808,13 @@ export default function App() {
           
           <nav className="flex items-center gap-8">
             <button 
-              onClick={() => setActivePage("home")}
+              onClick={() => handleNavSelect("home")}
               className={`font-bold text-sm transition-colors ${activePage === "home" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
             >
               Home
             </button>
             <button 
-              onClick={() => setActivePage("workspace")}
+              onClick={() => handleNavSelect("workspace")}
               className={`font-bold text-sm transition-colors relative ${activePage === "workspace" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
             >
               Workspace
@@ -801,16 +826,10 @@ export default function App() {
               )}
             </button>
             <button 
-              onClick={() => setActivePage("how-it-works")}
+              onClick={() => handleNavSelect("how-it-works")}
               className={`font-bold text-sm transition-colors ${activePage === "how-it-works" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
             >
               How it Works
-            </button>
-            <button 
-              onClick={() => setActivePage("account")}
-              className={`font-bold text-sm transition-colors ${activePage === "account" ? "text-brand-600" : "text-slate-500 dark:text-slate-400 hover:text-brand-400 dark:hover:text-brand-400"}`}
-            >
-              Account
             </button>
           </nav>
 
@@ -820,7 +839,7 @@ export default function App() {
                 onClick={() => setShowPricing(true)}
                 className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-xs border border-amber-200 dark:border-amber-800/50 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors mr-1"
               >
-                <Crown className="w-3.5 h-3.5" />
+                <Coins className="w-3.5 h-3.5" />
                 {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Unlimited ∞" : credits}
               </button>
             )}
@@ -830,16 +849,19 @@ export default function App() {
             >
               {isDarkMode ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
             </button>
-            <div className="w-9 h-9 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400">
+            <button 
+              onClick={() => handleNavSelect("account")}
+              className="w-9 h-9 rounded-full bg-brand-50 dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            >
               <User className="w-4.5 h-4.5" />
-            </div>
+            </button>
           </div>
         </div>
       </header>
 
       {/* Mobile Header */}
       <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-brand-50 dark:border-slate-800 py-4 sticky top-0 z-50 md:hidden px-6 flex items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActivePage("home")}>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavSelect("home")}>
           <motion.div 
             initial={{ rotate: -180, scale: 0.5, opacity: 0 }}
             animate={isProcessing ? { rotate: 360, scale: 1, opacity: 1 } : { rotate: 0, scale: 1, opacity: 1 }}
@@ -859,7 +881,7 @@ export default function App() {
               onClick={() => setShowPricing(true)}
               className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold text-[10px] border border-amber-200 dark:border-amber-800/50 mr-1"
             >
-              <Crown className="w-3 h-3" />
+              <Coins className="w-3 h-3" />
               {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "∞" : credits}
             </button>
           )}
@@ -873,14 +895,14 @@ export default function App() {
         <AnimatePresence mode="wait">
           {activePage === "home" && (
             <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <Home onSelectStudio={handleSelectStudio} banners={settings.banners} logo={settings.headerLogo || settings.logo} />
+              <Home onSelectStudio={handleSelectStudio} banners={settings.banners} logo={settings.headerLogo || settings.logo} initialMode={homeMode} />
             </motion.div>
           )}
           {activePage === "garment-studio" && (
             <motion.div key="garment-studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="flex items-center gap-4 mb-8">
                 <button 
-                  onClick={() => setActivePage("home")}
+                  onClick={() => handleNavSelect("home")}
                   className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-brand-100 dark:border-slate-700 flex items-center justify-center text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
                 >
                   <ChevronLeft className="w-6 h-6" />
@@ -953,14 +975,14 @@ export default function App() {
         
         <div className="h-16 flex items-center justify-around px-6 pb-safe">
           <button 
-            onClick={() => setActivePage("home")}
+            onClick={() => handleNavSelect("home")}
             className={`flex flex-col items-center gap-1 transition-colors ${activePage === "home" ? "text-brand-600" : "text-slate-400"}`}
           >
             <HomeIcon className="w-6 h-6" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Home</span>
           </button>
           <button 
-            onClick={() => setActivePage(lastWorkspacePage)}
+            onClick={() => handleNavSelect(lastWorkspacePage)}
             className={`flex flex-col items-center gap-1 transition-colors relative ${ (activePage === "workspace" || activePage === "studio" || activePage === "garment-studio") ? "text-brand-600" : "text-slate-400"}`}
           >
             <Wand2 className="w-6 h-6" />
@@ -973,14 +995,14 @@ export default function App() {
             <span className="text-[10px] font-bold uppercase tracking-wider">Workspace</span>
           </button>
           <button 
-            onClick={() => setActivePage("how-it-works")}
+            onClick={() => handleNavSelect("how-it-works")}
             className={`flex flex-col items-center gap-1 transition-colors ${activePage === "how-it-works" ? "text-brand-600" : "text-slate-400"}`}
           >
             <Sparkles className="w-6 h-6" />
             <span className="text-[10px] font-bold uppercase tracking-wider">How it Works</span>
           </button>
           <button 
-            onClick={() => setActivePage("account")}
+            onClick={() => handleNavSelect("account")}
             className={`flex flex-col items-center gap-1 transition-colors ${activePage === "account" ? "text-brand-600" : "text-slate-400"}`}
           >
             <User className="w-6 h-6" />
@@ -1043,6 +1065,41 @@ export default function App() {
               setActivePage("account");
             }} 
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {pendingNavPage && (
+          <div className="fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white dark:bg-slate-800 rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-700 text-center relative overflow-hidden"
+            >
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand-500 to-accent-500"></div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Choose Your Plan Before Moving</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 font-medium">Are you sure you want to leave without choosing a plan?</p>
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => setPendingNavPage(null)} 
+                  className="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-bold transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+                >
+                  Choose Plan
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowPricing(false);
+                    setActivePage(pendingNavPage);
+                    setPendingNavPage(null);
+                  }} 
+                  className="w-full py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-600 active:scale-[0.98]"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

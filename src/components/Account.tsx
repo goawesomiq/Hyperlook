@@ -5,7 +5,7 @@ import { auth } from "../firebase";
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, orderBy, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
-import { Crown, Clock } from "lucide-react";
+import { Coins, Clock } from "lucide-react";
 
 export default function Account({ onNavigate, onShowPricing, credits }: { onNavigate: (page: any) => void, onShowPricing: () => void, credits: number }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -154,7 +154,7 @@ export default function Account({ onNavigate, onShowPricing, credits }: { onNavi
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">{user.displayName || "User"}</h2>
           <div className="flex items-center gap-3 mt-1 text-[11px] font-bold">
             <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-              <Crown className="w-3 h-3" />
+              <Coins className="w-3 h-3" />
               {user.email?.toLowerCase() === "goawesomiq@gmail.com" ? "Unlimited ∞" : `${credits} Coins`}
             </div>
             <div className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />

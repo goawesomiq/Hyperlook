@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Download, RefreshCcw, LayoutGrid, ArrowLeft, CheckCircle, PlusCircle, Wand2, Crown } from "lucide-react";
+import { Download, RefreshCcw, LayoutGrid, ArrowLeft, CheckCircle, PlusCircle, Wand2, Crown, Coins } from "lucide-react";
 import { auth } from "../firebase";
 
 interface ResultGalleryProps {
@@ -272,7 +272,6 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                 >
                   <RefreshCcw className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                   <span className="text-[9px] sm:text-[10px] font-bold text-slate-600 dark:text-slate-400 leading-tight">Try Different</span>
-                  <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Crown className="w-2.5 h-2.5"/> {cost1k}</span>
                 </button>
 
                 <button
@@ -282,7 +281,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                 >
                   <Download className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                   <span className="text-[9px] sm:text-[10px] font-bold text-brand-700 dark:text-brand-400 leading-tight whitespace-nowrap overflow-hidden text-ellipsis w-full px-1 text-center">Download 1K</span>
-                  <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Crown className="w-2.5 h-2.5"/> {cost1k}</span>
+                  <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Coins className="w-2.5 h-2.5"/> {cost1k}</span>
                 </button>
 
                 {highResUrls[idx]?.['2k'] ? (
@@ -292,7 +291,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                   >
                     <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">Save 2K</span>
-                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-emerald-700/60 dark:text-emerald-400/60 opacity-0"><Crown className="w-2.5 h-2.5"/> 0</span>
+                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-emerald-700/60 dark:text-emerald-400/60 opacity-0"><Coins className="w-2.5 h-2.5"/> 0</span>
                   </button>
                 ) : (
                   <button
@@ -302,7 +301,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                   >
                     <Sparkles className="w-4 h-4 text-slate-700 dark:text-slate-300" />
                     <span className="text-[9px] sm:text-[10px] font-bold text-slate-800 dark:text-white leading-tight">Req. 2K</span>
-                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Crown className="w-2.5 h-2.5"/> {cost2k}</span>
+                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-600 dark:text-amber-400"><Coins className="w-2.5 h-2.5"/> {cost2k}</span>
                   </button>
                 )}
 
@@ -313,7 +312,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                   >
                     <Download className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <span className="text-[9px] sm:text-[10px] font-bold text-emerald-700 dark:text-emerald-400 leading-tight">Save 4K</span>
-                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-emerald-700/60 dark:text-emerald-400/60 opacity-0"><Crown className="w-2.5 h-2.5"/> 0</span>
+                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-emerald-700/60 dark:text-emerald-400/60 opacity-0"><Coins className="w-2.5 h-2.5"/> 0</span>
                   </button>
                 ) : (
                   <button
@@ -323,7 +322,7 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
                   >
                     <Crown className="w-4 h-4 text-amber-700 dark:text-amber-400" />
                     <span className="text-[9px] sm:text-[10px] font-bold text-amber-800 dark:text-amber-200 drop-shadow-sm leading-tight">Req. 4K</span>
-                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-800 dark:text-amber-400 drop-shadow-sm"><Crown className="w-2.5 h-2.5 fill-current"/> {cost4k}</span>
+                    <span className="flex items-center justify-center gap-0.5 text-[8px] sm:text-[9px] font-medium text-amber-800 dark:text-amber-400 drop-shadow-sm"><Coins className="w-2.5 h-2.5 fill-current"/> {cost4k}</span>
                   </button>
                 )}
               </div>

@@ -147,9 +147,6 @@ export default function Pricing({ onClose, onLoginRequest }: PricingProps) {
         <div className="flex justify-between items-center mb-8">
           <div className="text-white">
             <h2 className="text-3xl md:text-4xl font-bold mb-2">Choose Your Plan</h2>
-            <p className="text-slate-300">
-              Credit Costs: 1K = 1 Coin | 2K = 1.5 Coins | 4K = 2 Coins
-            </p>
           </div>
           <button 
             onClick={onClose}
