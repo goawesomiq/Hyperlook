@@ -746,46 +746,7 @@ if (WORKER_MODE) {
         console.log('=== ANALYZE ENDPOINT HIT ===');
         const body = req.body;
         
-        // Final routing decision
-        const model = body.model || body.config?.model || body.generationConfig?.model || '';
-        const promptTextForCheck = body.prompt || body.contents?.[0]?.parts?.find((p: any) => p.text)?.text || '';
-        const isExplicitAnalysisPrompt = typeof promptTextForCheck === 'string' && promptTextForCheck.includes('Analyze this garment image deeply');
-        const hasImageModality = body.responseModalities?.includes('IMAGE') || body.config?.responseModalities?.includes('IMAGE');
-        const isImageModel = String(model).toLowerCase().includes('image') || String(model).toLowerCase().includes('gemini-2.5-flash');
-        
-        // Ensure image generation intent checks match the frontend prompts
-        const isGenerationIntent = String(promptTextForCheck).includes('CRITICAL INSTRUCTION: Generate') || 
-                                   String(promptTextForCheck).includes('Create a photorealistic fashion photograph') || 
-                                   String(promptTextForCheck).includes('GENERATE PHOTOREALISTIC IMAGE');
-                                   
-        const isImageRequest = !isExplicitAnalysisPrompt && (isImageModel || isGenerationIntent || hasImageModality);
-        
-        if (isImageRequest) {
-          if (hasRedis || imageQueue) {
-            // UNIFIED ROBUST APPROACH: Use the Job Queue (real or mocked) even for /analyze requests
-            console.log('🔄 QUEUEING GENERATION JOB');
-            const job = await imageQueue.add('generate', body);
-            return res.json({ jobId: job.id, status: 'queued' });
-          } else if (WORKER_URL) {
-            // FALLBACK: Async HTTP forwarder
-            console.log('🔄 FORWARDING TO WORKER (HTTP SYNC)');
-            const formattedUrl = WORKER_URL.startsWith('http') ? WORKER_URL : `http://${WORKER_URL}`;
-            const workerRes = await fetch(`${formattedUrl}/generate`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(body),
-            });
-            
-            if (!workerRes.ok) throw new Error(await workerRes.text());
-            return res.json(await workerRes.json());
-          } else {
-            console.warn('⚠️ No Redis, imageQueue, or WORKER_URL found. Generation will fail.');
-            return res.status(500).json({ error: 'No queue or worker configured for generation tasks.' });
-          }
-        }
-        
-        // Non-image: use existing Gemini logic below
-        console.log('📝 Using text model');
+        console.log('📝 Using text model for analysis');
         const rawImage = req.body.image || req.body.base64Image || "";
         const base64Image = String(rawImage).includes(',') ? String(rawImage).split(',')[1] : String(rawImage);
         
@@ -878,14 +839,14 @@ Return the result in JSON format.`;
         };
 
         try {
-          console.log(`Starting GEMINI 2.5 FLASH text analysis for uploaded image...`);
+          console.log(`Starting GEMINI 3 FLASH text analysis for uploaded image...`);
           const startTime = Date.now();
           const responseData = await callGeminiWithRetry(
-            'gemini-2.5-flash',
+            'gemini-3-flash-preview',
             requestBody,
             25000 // 25 seconds for text analysis
           );
-          console.log(`GEMINI 2.5 FLASH analysis succeeded in ${Date.now() - startTime}ms`);
+          console.log(`GEMINI 3 FLASH analysis succeeded in ${Date.now() - startTime}ms`);
 
           const textResult = responseData.text || "{}";
           res.json(JSON.parse(textResult));

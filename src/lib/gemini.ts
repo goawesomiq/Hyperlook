@@ -64,7 +64,7 @@ Return the result in JSON format.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3-flash-preview',
           image: resizedBase64,
           prompt: prompt,
         }),
@@ -306,7 +306,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
   console.log('Sending to generate:', {
     hasImage: !!mainImageBase64,
     referenceCount: allReferenceImages.length,
-    model: 'gemini-2.5-pro',
+    model: 'gemini-3.1-flash-image-preview',
     isMagicRef,
     isMagicVariation
   });
