@@ -3,9 +3,45 @@ import { db } from "../firebase";
 
 import { auth } from "../firebase";
 
+export async function resizeBase64ForAnalysis(base64Str: string, maxDim: number = 800): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width <= maxDim && height <= maxDim) {
+        resolve(base64Str);
+        return;
+      }
+      if (width > height) {
+        height = Math.round((height * maxDim) / width);
+        width = maxDim;
+      } else {
+        width = Math.round((width * maxDim) / height);
+        height = maxDim;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(base64Str);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = () => resolve(base64Str);
+    img.src = base64Str;
+  });
+}
+
 export async function analyzeGarment(base64Image: string) {
   let retries = 1;
   let delay = 1000;
+
+  console.log("Resizing image for analysis...");
+  const resizedBase64 = await resizeBase64ForAnalysis(base64Image, 800);
+  console.log("Resize complete.");
 
   while (retries >= 0) {
     try {
@@ -29,7 +65,7 @@ Return the result in JSON format.`;
         },
         body: JSON.stringify({
           model: 'gemini-3-flash-preview',
-          image: base64Image,
+          image: resizedBase64,
           prompt: prompt,
         }),
       });
@@ -279,6 +315,14 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
     ? `Create a photorealistic fashion photograph. Generate a new image from scratch showing a model wearing this exact garment. ${prompt}`
     : prompt;
 
+  console.log("Resizing main image for generation to meet 1MP vertex limit...");
+  const resizedMainImage = await resizeBase64ForAnalysis(mainImageBase64, 1024);
+  
+  const resizedReferenceImages = await Promise.all(
+    allReferenceImages.map(img => resizeBase64ForAnalysis(img, 1024))
+  );
+  console.log("Resize complete.");
+
   let retries = 1;
   let delay = 1000;
   
@@ -294,8 +338,8 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           userEmail: auth.currentUser?.email || auth.currentUser?.phoneNumber || "",
           prompt: finalPrompt,
           model: "gemini-3-flash-preview",
-          image: mainImageBase64,
-          referenceImagesBase64: allReferenceImages,
+          image: resizedMainImage,
+          referenceImagesBase64: resizedReferenceImages,
           aspectRatio,
           quality,
           responseModalities: ["IMAGE"]
