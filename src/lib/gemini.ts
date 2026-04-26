@@ -64,7 +64,7 @@ Return the result in JSON format.`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gemini-3-flash-preview',
+          model: 'gemini-2.5-flash',
           image: resizedBase64,
           prompt: prompt,
         }),

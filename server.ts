@@ -878,15 +878,19 @@ Return the result in JSON format.`;
         };
 
         try {
+          console.log(`Starting GEMINI 2.5 FLASH text analysis for uploaded image...`);
+          const startTime = Date.now();
           const responseData = await callGeminiWithRetry(
-            'gemini-3-flash-preview',
+            'gemini-2.5-flash',
             requestBody,
-            120000 // 120 seconds
+            25000 // 25 seconds for text analysis
           );
+          console.log(`GEMINI 2.5 FLASH analysis succeeded in ${Date.now() - startTime}ms`);
 
           const textResult = responseData.text || "{}";
           res.json(JSON.parse(textResult));
         } catch (err: any) {
+          console.log(`Gemini Text Analysis Failed: ${err.message}`);
           if (err.message.includes('AI servers are busy') || err.message.includes('timed out')) {
             return res.status(503).json({ error: 'AI servers busy, try again in 2 minutes' });
           }
