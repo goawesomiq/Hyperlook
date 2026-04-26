@@ -337,7 +337,7 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
           userId: auth.currentUser?.uid || "anonymous",
           userEmail: auth.currentUser?.email || auth.currentUser?.phoneNumber || "",
           prompt: finalPrompt,
-          model: "gemini-3-flash-preview",
+          model: "gemini-3.1-flash-image-preview",
           image: resizedMainImage,
           referenceImagesBase64: resizedReferenceImages,
           aspectRatio,

@@ -38,13 +38,11 @@ async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: n
       });
       clearTimeout(timeoutId);
 
-      const responseData = await response.json();
+      const responseData = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        if (responseData.error) {
-          throw new Error(responseData.error.message || JSON.stringify(responseData.error));
-        }
-        throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+        let errMsg = responseData.error?.message || JSON.stringify(responseData.error) || response.statusText;
+        throw new Error(`HTTP_${response.status} ${errMsg}`);
       }
 
       // Format response to match SDK expectations
@@ -60,8 +58,11 @@ async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: n
          if (attempt === maxRetries) throw error;
       }
       
-      // Don't retry client errors like 400
-      if (error.message && error.message.includes('400')) throw error;
+      // Don't retry client errors like 400, 403, 404
+      if (error.message && (error.message.includes('HTTP_400') || error.message.includes('HTTP_403') || error.message.includes('HTTP_404'))) {
+         console.log(`Failed immediately with client error: ${error.message}`);
+         throw error;
+      }
 
       const waitTime = attempt * 5000;
       console.log(`Error: ${error.message}. Retrying in ${waitTime/1000}s...`);
@@ -748,16 +749,20 @@ if (WORKER_MODE) {
         // Final routing decision
         const model = body.model || body.config?.model || body.generationConfig?.model || '';
         const promptTextForCheck = body.prompt || body.contents?.[0]?.parts?.find((p: any) => p.text)?.text || '';
-        const isExplicitAnalysisPrompt = typeof promptTextForCheck === 'string' && promptTextForCheck.includes('Analyze this garment');
+        const isExplicitAnalysisPrompt = typeof promptTextForCheck === 'string' && promptTextForCheck.includes('Analyze this garment image deeply');
         const hasImageModality = body.responseModalities?.includes('IMAGE') || body.config?.responseModalities?.includes('IMAGE');
-        const isImageModel = String(model).toLowerCase().includes('image') || String(model).toLowerCase().includes('flash-image');
+        const isImageModel = String(model).toLowerCase().includes('image') || String(model).toLowerCase().includes('gemini-2.5-flash');
         
-        const isImageRequest = !isExplicitAnalysisPrompt && (isImageModel || hasImageModality);
+        // Ensure image generation intent checks match the frontend prompts
+        const isGenerationIntent = String(promptTextForCheck).includes('CRITICAL INSTRUCTION: Generate') || 
+                                   String(promptTextForCheck).includes('Create a photorealistic fashion photograph') || 
+                                   String(promptTextForCheck).includes('GENERATE PHOTOREALISTIC IMAGE');
+                                   
+        const isImageRequest = !isExplicitAnalysisPrompt && (isImageModel || isGenerationIntent || hasImageModality);
         
         if (isImageRequest) {
-          if (hasRedis) {
-            // UNIFIED ROBUST APPROACH: If we have Redis, use the Job Queue even for /analyze requests
-            // This ensures SSE and progress tracking work perfectly.
+          if (hasRedis || imageQueue) {
+            // UNIFIED ROBUST APPROACH: Use the Job Queue (real or mocked) even for /analyze requests
             console.log('🔄 QUEUEING GENERATION JOB');
             const job = await imageQueue.add('generate', body);
             return res.json({ jobId: job.id, status: 'queued' });
@@ -773,6 +778,9 @@ if (WORKER_MODE) {
             
             if (!workerRes.ok) throw new Error(await workerRes.text());
             return res.json(await workerRes.json());
+          } else {
+            console.warn('⚠️ No Redis, imageQueue, or WORKER_URL found. Generation will fail.');
+            return res.status(500).json({ error: 'No queue or worker configured for generation tasks.' });
           }
         }
         
