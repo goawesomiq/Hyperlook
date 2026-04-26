@@ -17,41 +17,56 @@ console.log('Worker URL configured as:', WORKER_URL);
 
 // ============ HELPER FUNCTIONS ============
 
-import { GoogleGenAI } from "@google/genai";
-
 async function callGeminiWithRetry(model: string, requestBody: any, timeoutMs: number, maxRetries = 3) {
   let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
   if (!apiKey) throw new Error("No Gemini API key found");
-  
-  const ai = new GoogleGenAI({ apiKey });
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  try {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Gemini call attempt ${attempt}/${maxRetries} for model ${model}`);
-        
-        const response = await ai.models.generateContent({
-          model: model,
-          contents: requestBody.contents,
-          config: requestBody.generationConfig
-        });
-        
-        return response;
-        
-      } catch (error: any) {
-        if (error.name === 'AbortError') throw new Error(`Request timed out after ${timeoutMs/1000}s`);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Gemini call attempt ${attempt}/${maxRetries} for model ${model}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        if (attempt === maxRetries) throw error;
-        const waitTime = attempt * 5000;
-        console.log(`Error: ${error.message}. Retrying in ${waitTime/1000}s...`);
-        await new Promise(r => setTimeout(r, waitTime));
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        if (responseData.error) {
+          throw new Error(responseData.error.message || JSON.stringify(responseData.error));
+        }
+        throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
       }
+
+      // Format response to match SDK expectations
+      return {
+        text: responseData.candidates?.[0]?.content?.parts?.[0]?.text || null,
+        candidates: responseData.candidates
+      };
+      
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+         if (attempt === maxRetries) throw new Error(`Request timed out after ${timeoutMs/1000}s`);
+      } else {
+         if (attempt === maxRetries) throw error;
+      }
+      
+      // Don't retry client errors like 400
+      if (error.message && error.message.includes('400')) throw error;
+
+      const waitTime = attempt * 5000;
+      console.log(`Error: ${error.message}. Retrying in ${waitTime/1000}s...`);
+      await new Promise(r => setTimeout(r, waitTime));
     }
-  } finally {
-    clearTimeout(timeout);
   }
   throw new Error('AI servers are busy. Please try again in 2 minutes.');
 }
@@ -475,6 +490,10 @@ if (WORKER_MODE) {
     connection: { url: process.env.REDIS_URL }
   });
 
+  worker.on('error', (err) => {
+    console.error('BullMQ Worker Error:', err.message);
+  });
+
   worker.on('completed', job => {
     console.log(`${job.id} has completed!`);
   });
@@ -495,6 +514,10 @@ if (WORKER_MODE) {
   if (hasRedis) {
     imageQueue = new Queue('photoshoot', {
       connection: { url: process.env.REDIS_URL }
+    });
+    
+    imageQueue.on('error', (err: any) => {
+      console.error('BullMQ Queue Error:', err.message);
     });
     
     // Fix for MISCONF Redis error: Disable write stopping when background save fails
