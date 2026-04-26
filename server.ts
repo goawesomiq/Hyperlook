@@ -8,6 +8,7 @@ import fs from "fs";
 import { Queue, Worker } from 'bullmq';
 import { getUserCredits, updateUserCredits } from './firestoreRest';
 import { GoogleAuth } from 'google-auth-library';
+import sharp from 'sharp';
 
 const WORKER_MODE = process.env.WORKER_MODE === 'true';
 const PORT = Number(process.env.PORT || 3000);
@@ -305,9 +306,17 @@ async function processUpscaleJob(job: any) {
       let buffer = Buffer.from(cleanImg, 'base64');
       
       // Ensure image is at most 1,048,576 pixels (max size for optimal Vertex upscaling constraints)
-      // Since sharp was causing OOM, we rely on the frontend or backend Vertex limits directly.
-      // Vertex Imagen Upscale can usually handle up to its max payload.
-      // If it fails, the error will just be caught and returned, rather than crashing the node process.
+      const metadata = await sharp(buffer).metadata();
+      if (metadata.width && metadata.height) {
+        const totalPixels = metadata.width * metadata.height;
+        if (totalPixels > 1048576) {
+          console.log(`UPSCALE: Resizing image from ${metadata.width}x${metadata.height} to fit 1MP limit...`);
+          const scaleFactor = Math.sqrt(1048576 / totalPixels);
+          buffer = await sharp(buffer)
+            .resize(Math.floor(metadata.width * scaleFactor), Math.floor(metadata.height * scaleFactor))
+            .toBuffer();
+        }
+      }
 
       const credentialsJson = JSON.parse(Buffer.from(credentialsBase64, 'base64').toString('utf-8'));
       
@@ -475,6 +484,8 @@ if (WORKER_MODE) {
 
   // Fix for MISCONF Redis error: Disable write stopping when background save fails
   const Redis = (await import('ioredis')).default;
+  const sharedRedisConnection = new Redis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
+  
   const redisConfigFixer = new Redis(process.env.REDIS_URL!);
   redisConfigFixer.config('SET', 'stop-writes-on-bgsave-error', 'no')
     .then(() => console.log('✅ Worker: Redis write-protection disabled (MISCONF fix)'))
@@ -488,7 +499,7 @@ if (WORKER_MODE) {
     // Default to generate
     return await processPhotoshootJob(job);
   }, {
-    connection: { url: process.env.REDIS_URL }
+    connection: sharedRedisConnection
   });
 
   worker.on('error', (err) => {
@@ -513,8 +524,11 @@ if (WORKER_MODE) {
   let imageQueue: any;
 
   if (hasRedis) {
+    const Redis = (await import('ioredis')).default;
+    const sharedRedisConnection = new Redis(process.env.REDIS_URL!, { maxRetriesPerRequest: null });
+    
     imageQueue = new Queue('photoshoot', {
-      connection: { url: process.env.REDIS_URL }
+      connection: sharedRedisConnection
     });
     
     imageQueue.on('error', (err: any) => {
@@ -523,7 +537,6 @@ if (WORKER_MODE) {
     
     // Fix for MISCONF Redis error: Disable write stopping when background save fails
     // This allows the queue to continue working even if disk persistence is failing
-    const Redis = (await import('ioredis')).default;
     const redisConfigFixer = new Redis(process.env.REDIS_URL!);
     redisConfigFixer.config('SET', 'stop-writes-on-bgsave-error', 'no')
       .then(() => console.log('✅ Redis write-protection disabled (MISCONF fix)'))
