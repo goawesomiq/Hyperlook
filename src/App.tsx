@@ -504,14 +504,25 @@ export default function App() {
     } catch (err: any) {
       if (currentGenId !== generationIdRef.current) return;
       
-      let detailedError = err?.message || "Failed to generate photoshoot.";
-      try {
-        if (typeof err === 'object') {
-          detailedError += " | Stack: " + (err?.stack?.substring(0,200) || "") + " | JSON: " + JSON.stringify(err);
-        }
-      } catch(e){}
+      const isAdmin = user?.phoneNumber === "+918888039433" || user?.email?.toLowerCase() === "goawesomiq@gmail.com";
+      let displayError = "Overloaded: We are currently experiencing high traffic. Please try again after 5 seconds.";
       
-      setError(detailedError);
+      if (isAdmin) {
+        displayError = err?.message || "Failed to generate photoshoot.";
+        try {
+          if (typeof err === 'object') {
+            displayError += " | JSON: " + JSON.stringify({ message: err?.message, name: err?.name });
+          }
+        } catch(e){}
+      } else {
+        // If it's a specific frontend-level message we generated, we could pass it through, 
+        // but to be safe we show a generic friendly error.
+        if (err?.message?.includes("Insufficient coins") || err?.message?.includes("Image is too large")) {
+          displayError = err.message;
+        }
+      }
+      
+      setError(displayError);
       console.error("Photoshoot execution error:", err);
     } finally {
       if (currentGenId === generationIdRef.current) {
@@ -600,13 +611,24 @@ export default function App() {
       
     } catch (err: any) {
       if (currentGenId !== generationIdRef.current) return;
-      let detailedError = err?.message || "Failed to regenerate image.";
-      try {
-        if (typeof err === 'object') {
-          detailedError += " | Stack: " + (err?.stack?.substring(0,200) || "") + " | JSON: " + JSON.stringify(err);
+      
+      const isAdmin = user?.phoneNumber === "+918888039433" || user?.email?.toLowerCase() === "goawesomiq@gmail.com";
+      let displayError = "Overloaded: We are currently experiencing high traffic. Please try again after 5 seconds.";
+      
+      if (isAdmin) {
+        displayError = err?.message || "Failed to regenerate image.";
+        try {
+          if (typeof err === 'object') {
+            displayError += " | JSON: " + JSON.stringify({ message: err?.message, name: err?.name });
+          }
+        } catch(e){}
+      } else {
+        if (err?.message?.includes("Insufficient coins") || err?.message?.includes("Image is too large")) {
+          displayError = err.message;
         }
-      } catch(e){}
-      setError(detailedError);
+      }
+
+      setError(displayError);
       console.error(err);
     } finally {
       if (currentGenId === generationIdRef.current) {
@@ -653,11 +675,12 @@ export default function App() {
           <div className="w-12 h-1 bg-brand-200 rounded-full mt-2" />
         </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             className="max-w-4xl mx-auto mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2 text-red-700 text-sm overflow-auto"
           >
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -673,7 +696,7 @@ export default function App() {
             key="step-0"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
             className="space-y-4 md:space-y-6 relative"
           >
             <div className="relative mb-4">
@@ -749,7 +772,7 @@ export default function App() {
             key="step-1"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
           >
             <GarmentSelector
               recommendation={recommendation as any}
@@ -766,7 +789,7 @@ export default function App() {
             key="step-2"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: -20, transition: { duration: 0.1 } }}
           >
             <ConfigPanel
               config={config}
@@ -990,15 +1013,15 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 md:px-6 py-2 md:py-6 pb-24">
-        <AnimatePresence mode="wait">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 md:px-6 py-2 md:py-6 pb-24 relative min-h-[60vh] flex flex-col">
+        <AnimatePresence mode="popLayout">
           {activePage === "home" && (
-            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               <Home onSelectStudio={handleSelectStudio} banners={settings.banners} logo={settings.headerLogo || settings.logo} initialMode={homeMode} />
             </motion.div>
           )}
           {activePage === "garment-studio" && (
-            <motion.div key="garment-studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="garment-studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               <div className="flex items-center gap-4 mb-8">
                 <button 
                   onClick={() => handleNavSelect("home")}
@@ -1012,12 +1035,12 @@ export default function App() {
             </motion.div>
           )}
           {activePage === "studio" && (
-            <motion.div key="studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="studio" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               {renderStudio()}
             </motion.div>
           )}
           {activePage === "workspace" && (
-            <motion.div key="workspace" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="workspace" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               <ResultGallery
                 images={results}
                 onRetry={handleRetry}
@@ -1034,17 +1057,17 @@ export default function App() {
             </motion.div>
           )}
           {activePage === "how-it-works" && (
-            <motion.div key="how-it-works" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="how-it-works" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               <HowItWorks />
             </motion.div>
           )}
           {activePage === "account" && (
-            <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               <Account onNavigate={setActivePage} onShowPricing={() => setShowPricing(true)} credits={credits} onNewUser={() => setShowWelcomeBonus(true)} />
             </motion.div>
           )}
           {activePage === "admin" && (
-            <motion.div key="admin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div key="admin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="w-full h-full">
               <AdminDashboard />
             </motion.div>
           )}
