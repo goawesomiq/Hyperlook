@@ -108,7 +108,7 @@ async function processPhotoshootJob(job: any) {
     throw new Error("No valid main garment image received. Please check your upload.");
   }
 
-  const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
+  const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com", "+918888039433"];
   const emailToSafe = (userEmail || "").toLowerCase();
   let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
   const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
@@ -272,9 +272,9 @@ async function processUpscaleJob(job: any) {
   if (!cleanImg) throw new Error("No image provided for upscaling.");
 
   // Deduct Credits
-  const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
-  const emailToSafe = (userEmail || "").toLowerCase();
-  let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
+  const ADMIN_IDENTIFIERS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com", "+918888039433"];
+  const idToSafe = (userEmail || "").toLowerCase();
+  let isAdmin = ADMIN_IDENTIFIERS.includes(idToSafe);
   const cost = quality === "4k" ? 2 : 1; 
 
   const projectIdFB = process.env.FIREBASE_PROJECT_ID;
@@ -944,7 +944,7 @@ Return the result in JSON format.`;
         const { userId, userEmail, imageBase64, quality, isDesign } = req.body;
         
         // Check user has enough coins before queueing
-        const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
+        const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com", "+918888039433"];
         const emailToSafe = (userEmail || "").toLowerCase();
         let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
         const cost = quality === "4k" ? (isDesign ? 3 : 2) : (isDesign ? 2.5 : 1.5); 
@@ -979,6 +979,8 @@ Return the result in JSON format.`;
         console.error("Upscale error:", error);
         res.status(500).json({ 
           error: error.message || "Failed to queue image upscale",
+          stack: error.stack,
+          details: JSON.stringify(error)
         });
       }
     });
@@ -989,7 +991,7 @@ Return the result in JSON format.`;
         const mainImageBase64 = req.body.mainImageBase64 || req.body.image || req.body.base64Image;
         
         // Check user has enough coins before queueing
-        const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com"];
+        const ADMIN_EMAILS = ["goawesomiq@gmail.com", "kunalrajput1717@gmail.com", "+918888039433"];
         const emailToSafe = (userEmail || "").toLowerCase();
         let isAdmin = ADMIN_EMAILS.includes(emailToSafe);
         const cost = quality === "4K" ? 2 : quality === "2K" ? 1.5 : 1;
@@ -1029,6 +1031,8 @@ Return the result in JSON format.`;
         console.error("Generation error:", error);
         res.status(500).json({ 
           error: error.message || "Failed to queue image generation",
+          stack: error.stack,
+          details: JSON.stringify(error)
         });
       }
     });

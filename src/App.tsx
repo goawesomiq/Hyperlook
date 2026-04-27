@@ -503,7 +503,15 @@ export default function App() {
 
     } catch (err: any) {
       if (currentGenId !== generationIdRef.current) return;
-      setError(err?.message || "Failed to generate photoshoot. Please try again.");
+      
+      let detailedError = err?.message || "Failed to generate photoshoot.";
+      try {
+        if (typeof err === 'object') {
+          detailedError += " | Stack: " + (err?.stack?.substring(0,200) || "") + " | JSON: " + JSON.stringify(err);
+        }
+      } catch(e){}
+      
+      setError(detailedError);
       console.error("Photoshoot execution error:", err);
     } finally {
       if (currentGenId === generationIdRef.current) {
@@ -592,7 +600,13 @@ export default function App() {
       
     } catch (err: any) {
       if (currentGenId !== generationIdRef.current) return;
-      setError(err?.message || "Failed to regenerate image. Please try again.");
+      let detailedError = err?.message || "Failed to regenerate image.";
+      try {
+        if (typeof err === 'object') {
+          detailedError += " | Stack: " + (err?.stack?.substring(0,200) || "") + " | JSON: " + JSON.stringify(err);
+        }
+      } catch(e){}
+      setError(detailedError);
       console.error(err);
     } finally {
       if (currentGenId === generationIdRef.current) {
@@ -644,11 +658,11 @@ export default function App() {
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-2xl mx-auto mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2 text-red-700 text-sm"
+            className="max-w-4xl mx-auto mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2 text-red-700 text-sm overflow-auto"
           >
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <p className="font-medium">{error}</p>
-            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <p className="font-medium break-words">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600 text-lg leading-none">
               &times;
             </button>
           </motion.div>
