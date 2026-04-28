@@ -6,18 +6,23 @@ import { collection, query, where, orderBy, onSnapshot } from "firebase/firestor
 import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
 import { useLanguage } from "../lib/LanguageContext";
 
-interface Photoshoot {
+interface Generation {
   id: string;
-  userId: string;
+  jobId: string;
+  resolution: string;
+  thumbnailUrl: string;
+  downloadUrl: string;
+  garmentType: string;
+  prompt: string;
+  fileSizeMB: string;
   createdAt: any;
-  config: any;
-  results: string[];
+  status: string;
 }
 
 export default function History({ onStartCreating }: { onStartCreating: () => void }) {
   const { t } = useLanguage();
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [photoshoots, setPhotoshoots] = useState<Photoshoot[]>([]);
+  const [generations, setGenerations] = useState<Generation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,23 +34,22 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
 
   useEffect(() => {
     if (!user) {
-      setPhotoshoots([]);
+      setGenerations([]);
       setLoading(false);
       return;
     }
 
     const q = query(
-      collection(db, "photoshoots"),
-      where("userId", "==", user.uid),
+      collection(db, "users", user.uid, "generations"),
       orderBy("createdAt", "desc")
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedPhotoshoots: Photoshoot[] = [];
+      const fetchedGenerations: Generation[] = [];
       snapshot.forEach((doc) => {
-        fetchedPhotoshoots.push({ id: doc.id, ...doc.data() } as Photoshoot);
+        fetchedGenerations.push({ id: doc.id, ...doc.data() } as Generation);
       });
-      setPhotoshoots(fetchedPhotoshoots);
+      setGenerations(fetchedGenerations);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching history:", error);
@@ -73,7 +77,7 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
     );
   }
 
-  if (photoshoots.length === 0) {
+  if (generations.length === 0) {
     return (
       <div className="text-center py-20 max-w-md mx-auto">
         <HistoryIcon className="w-16 h-16 text-slate-200 dark:text-slate-700 mx-auto mb-4" />
@@ -95,43 +99,67 @@ export default function History({ onStartCreating }: { onStartCreating: () => vo
         <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900 dark:text-white">{t("Your History", "Your History")}</h2>
       </div>
 
-      <div className="space-y-8">
-        {photoshoots.map((photoshoot) => (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {generations.map((generation) => (
           <motion.div 
-            key={photoshoot.id}
+            key={generation.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="cute-card p-4 md:p-6 space-y-4 md:space-y-6"
+            className="cute-card overflow-hidden group flex flex-col"
           >
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div>
-                <h3 className="font-bold text-slate-800 dark:text-white text-lg">{photoshoot.config.garmentType || t("Photoshoot", "Photoshoot")}</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {photoshoot.createdAt?.toDate ? photoshoot.createdAt.toDate().toLocaleDateString() : t("Recently", "Recently")}
-                </p>
-              </div>
-              <div className="px-3 py-1 bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 rounded-full text-xs font-bold">
-                {photoshoot.results.length} {t("Photos", "Photos")}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {photoshoot.results.map((result, idx) => (
-                <div key={idx} className="relative group aspect-[3/4] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-                  <img src={result} alt={t(`Result ${idx + 1}`, `Result ${idx + 1}`)} className="w-full h-full object-cover select-none pointer-events-none" style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }} />
-                  <div className="absolute inset-0 z-0 bg-transparent" onContextMenu={(e) => e.preventDefault()} />
-                  <div className="absolute inset-0 z-10 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <a 
-                      href={result} 
-                      download={`hyperlook-history-${photoshoot.id}-${idx}.png`}
-                      className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-colors"
-                    >
-                      <Download className="w-5 h-5" />
-                    </a>
+             <div className="relative aspect-[3/4] bg-slate-100 dark:bg-slate-800">
+                <img 
+                  src={generation.thumbnailUrl || generation.downloadUrl} 
+                  alt={generation.garmentType} 
+                  className="w-full h-full object-cover select-none pointer-events-none" 
+                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }} 
+                />
+                
+                {generation.status === 'expired' && (
+                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 text-center">
+                      <p className="text-white text-sm font-medium">Link Expired (7 Days)</p>
+                   </div>
+                )}
+                
+                {generation.status !== 'expired' && (
+                  <>
+                    <div className="absolute inset-0 z-0 bg-transparent" onContextMenu={(e) => e.preventDefault()} />
+                    <div className="absolute inset-0 z-10 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      {generation.downloadUrl ? (
+                         <a 
+                           href={generation.downloadUrl} 
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-colors"
+                         >
+                           <Download className="w-5 h-5" />
+                         </a>
+                      ) : (
+                         <span className="text-white text-sm">Processing...</span>
+                      )}
+                    </div>
+                  </>
+                )}
+             </div>
+             
+             <div className="p-4 flex-1 flex flex-col justify-between border-t border-slate-100 dark:border-slate-800">
+               <div>
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="font-bold text-slate-800 dark:text-white text-sm truncate pr-2">{generation.garmentType || t("Photoshoot", "Photoshoot")}</h3>
+                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-brand-50 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400 shrink-0">
+                      {generation.resolution}
+                    </span>
                   </div>
-                </div>
-              ))}
-            </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2" title={generation.prompt}>{generation.prompt || "No prompt provided"}</p>
+               </div>
+               
+               <div className="mt-3 flex items-center justify-between text-xs text-slate-400 dark:text-slate-500">
+                 <span>
+                    {generation.createdAt?.toDate ? generation.createdAt.toDate().toLocaleDateString() : t("Recently", "Recently")}
+                 </span>
+                 {generation.fileSizeMB && <span>{generation.fileSizeMB}</span>}
+               </div>
+             </div>
           </motion.div>
         ))}
       </div>

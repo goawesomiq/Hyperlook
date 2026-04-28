@@ -477,28 +477,6 @@ export default function App() {
       setResults(updatedResults);
       setGeneratedPoses(prev => Array.from(new Set([...prev, ...posesToGenerate])));
 
-      if (user && newResults.length > 0) {
-        try {
-          const uploadedResults = await Promise.all(newResults.map(async (base64Str, index) => {
-            const storageRef = ref(storage, `photoshoots/${user.uid}/${Date.now()}_${index}.jpg`);
-            await uploadString(storageRef, base64Str, 'data_url');
-            return await getDownloadURL(storageRef);
-          }));
-
-          const configToSave = { ...currentConfig };
-          delete configToSave.referenceImages;
-
-          await addDoc(collection(db, "photoshoots"), {
-            userId: user.uid,
-            createdAt: serverTimestamp(),
-            config: configToSave,
-            results: uploadedResults
-          });
-        } catch (e) {
-          console.error("Failed to save to history", e);
-        }
-      }
-
       showNotification();
 
     } catch (err: any) {
@@ -684,8 +662,18 @@ export default function App() {
             className="max-w-4xl mx-auto mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2 text-red-700 text-sm overflow-auto"
           >
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <p className="font-medium break-words">{error}</p>
-            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-600 text-lg leading-none">
+            <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <p className="font-medium break-words">{error}</p>
+              {error?.includes("Insufficient coins") && (
+                <button 
+                  onClick={() => setShowPricing(true)}
+                  className="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold transition-colors whitespace-nowrap shadow-sm"
+                >
+                  Buy Coins
+                </button>
+              )}
+            </div>
+            <button onClick={() => setError(null)} className="ml-2 text-red-400 hover:text-red-600 text-lg leading-none shrink-0">
               &times;
             </button>
           </motion.div>

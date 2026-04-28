@@ -3,21 +3,21 @@ import { db } from "../firebase";
 
 import { auth } from "../firebase";
 
-export async function resizeBase64ForAnalysis(base64Str: string, maxDim: number = 800): Promise<string> {
+export async function resizeBase64ForAnalysis(base64Str: string, maxDim: number = 800, quality: number = 0.6): Promise<string> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       let { width, height } = img;
       if (width <= maxDim && height <= maxDim) {
-        resolve(base64Str);
-        return;
-      }
-      if (width > height) {
-        height = Math.round((height * maxDim) / width);
-        width = maxDim;
+        // If image is already smaller than maxDim, we still re-encode to drop size using quality parameter
       } else {
-        width = Math.round((width * maxDim) / height);
-        height = maxDim;
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
       }
       const canvas = document.createElement("canvas");
       canvas.width = width;
@@ -28,7 +28,7 @@ export async function resizeBase64ForAnalysis(base64Str: string, maxDim: number 
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL("image/jpeg", 0.8));
+      resolve(canvas.toDataURL("image/jpeg", quality));
     };
     img.onerror = () => resolve(base64Str);
     img.src = base64Str;
@@ -40,7 +40,7 @@ export async function analyzeGarment(base64Image: string) {
   let delay = 1000;
 
   console.log("Resizing image for analysis...");
-  const resizedBase64 = await resizeBase64ForAnalysis(base64Image, 800);
+  const resizedBase64 = await resizeBase64ForAnalysis(base64Image, 512, 0.6);
   console.log("Resize complete.");
 
   while (retries >= 0) {
@@ -315,11 +315,11 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
     ? `Create a photorealistic fashion photograph. Generate a new image from scratch showing a model wearing this exact garment. ${prompt}`
     : prompt;
 
-  console.log("Resizing main image for generation to meet 1MP vertex limit...");
-  const resizedMainImage = await resizeBase64ForAnalysis(mainImageBase64, 1024);
+  console.log("Resizing main image for generation to meet lower vertex limit for speed...");
+  const resizedMainImage = await resizeBase64ForAnalysis(mainImageBase64, 768, 0.7);
   
   const resizedReferenceImages = await Promise.all(
-    allReferenceImages.map(img => resizeBase64ForAnalysis(img, 1024))
+    allReferenceImages.map(img => resizeBase64ForAnalysis(img, 768, 0.7))
   );
   console.log("Resize complete.");
 
@@ -400,17 +400,30 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
               clearTimeout(timeout);
               eventSource.close();
               
+              const handleSuccess = async (rv: any) => {
+                let finalUrl = '';
+                if (rv?.imageUrl) {
+                  finalUrl = rv.imageUrl;
+                } else if (rv?.image_base64) {
+                  const b64 = rv.image_base64.replace(/\s/g, '');
+                  finalUrl = b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`;
+                } else {
+                  return reject(new Error("Worker returned invalid image data format."));
+                }
+                
+                resolve(finalUrl);
+              };
+
+              if (data.returnvalue) {
+                handleSuccess(data.returnvalue);
+                return;
+              }
+              
               // Now fetch the actual huge image safely via normal HTTP
               fetch(`/api/result/${jobId}`)
                 .then(res => res.json())
                 .then(resultData => {
-                  const b64Raw = resultData.returnvalue?.image_base64 || resultData.returnvalue;
-                  if (typeof b64Raw !== 'string' || !b64Raw) {
-                     reject(new Error("Worker returned invalid image data format."));
-                     return;
-                  }
-                  const b64 = b64Raw.replace(/\s/g, '');
-                  resolve(`data:image/jpeg;base64,${b64}`);
+                  handleSuccess(resultData.returnvalue);
                 })
                 .catch(err => reject(new Error("Failed to fetch final image data: " + err.message)));
               

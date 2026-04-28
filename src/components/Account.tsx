@@ -1,12 +1,210 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { User, CreditCard, ShieldCheck, LogOut, ChevronRight, Settings, Bell, HelpCircle, Check, X, History as HistoryIcon, Image as ImageIcon, Phone, Loader2 } from "lucide-react";
+import { User, CreditCard, ShieldCheck, LogOut, ChevronRight, Settings, Bell, HelpCircle, Check, X, History as HistoryIcon, Image as ImageIcon, Phone, Loader2, Download, AlertTriangle, Info } from "lucide-react";
 import { auth } from "../firebase";
 import { signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, User as FirebaseUser, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, getDocs, collection, query, where, orderBy, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { Coins, Clock } from "lucide-react";
 import { useLanguage } from "../lib/LanguageContext";
+
+const HistoryGalleryTab = () => {
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const headers: any = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (auth.currentUser?.uid) headers['x-user-id'] = auth.currentUser.uid;
+      
+      const res = await fetch('/api/history', { headers });
+      if (!res.ok) throw new Error('Failed to fetch history');
+      const data = await res.json();
+      setHistory(data.history || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async (item: any) => {
+    if (item.status === 'expired') {
+      alert("Image expired after 7 days. Please regenerate.");
+      return;
+    }
+
+    try {
+      setDownloadingId(item.id);
+      const token = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const headers: any = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (auth.currentUser?.uid) headers['x-user-id'] = auth.currentUser.uid;
+      
+      const res = await fetch(`/api/history/${item.id}/download`, { headers });
+      if (!res.ok) {
+        if (res.status === 410) {
+          alert('Image expired after 7 days.');
+          fetchHistory(); // Refresh to show it as expired
+        } else {
+          throw new Error('Failed to get download URL');
+        }
+        return;
+      }
+      
+      const data = await res.json();
+      
+      // Open the signed URL in a new tab to download
+      if (data.downloadUrl) {
+         window.open(data.downloadUrl, '_blank');
+      }
+      
+    } catch (err) {
+      console.error(err);
+      alert('Failed to download image. Try again later.');
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <motion.div 
+        key="history"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className="space-y-4"
+      >
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+           {[...Array(8)].map((_, i) => (
+             <div key={i} className="animate-pulse bg-slate-100 dark:bg-slate-800 rounded-2xl aspect-[3/4] w-full" />
+           ))}
+        </div>
+      </motion.div>
+    );
+  }
+
+  if (history.length === 0) {
+    return (
+      <motion.div 
+        key="history"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm text-center"
+      >
+        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-6">
+          <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-500" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">No History Yet</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-6">
+          Your generated images will appear here and will be kept for 7 days.
+        </p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div 
+      key="history"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-4"
+    >
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Your Gallery</h3>
+        <span className="text-xs text-slate-500 dark:text-slate-400">Stored for 7 days</span>
+      </div>
+      
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {history.map((item) => {
+          const isExpired = item.status === 'expired';
+          const isExpiringSoon = !isExpired && item.daysRemaining <= 2;
+          
+          return (
+            <div key={item.id} className="group relative bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+              <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700">
+                <img 
+                  src={item.thumbnailUrl} 
+                  alt={item.prompt || "Generated Image"} 
+                  className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isExpired ? 'opacity-50 grayscale' : ''}`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+                
+                {/* Resolution Badge */}
+                <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-widest border border-white/10 shadow-sm">
+                  {item.resolution || '1k'}
+                </div>
+                
+                {/* Expiry Badge */}
+                {isExpired ? (
+                  <div className="absolute top-2 right-2 bg-red-500/90 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-sm">
+                    Expired
+                  </div>
+                ) : isExpiringSoon ? (
+                  <div className="absolute top-2 right-2 bg-amber-500/90 backdrop-blur-md text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3" />
+                    {item.daysRemaining}d left
+                  </div>
+                ) : null}
+              </div>
+              
+              <div className="p-3 flex-1 flex flex-col justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 capitalize bg-slate-100 dark:bg-slate-900/50 px-2 py-0.5 rounded-full">
+                      {item.garmentType.replace(/_/g, ' ')}
+                    </span>
+                    <div className="group/tooltip relative">
+                      <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                      <div className="absolute bottom-full right-0 mb-2 w-48 bg-slate-800 text-white text-[10px] p-2 rounded-lg opacity-0 pointer-events-none group-hover/tooltip:opacity-100 transition-opacity z-10 shadow-xl border border-slate-700 space-y-1">
+                        <div><span className="text-slate-400">Date:</span> {new Date(item.createdAt).toLocaleString()}</div>
+                        <div><span className="text-slate-400">Status:</span> {item.status}</div>
+                        {item.fileSizeMB && <div><span className="text-slate-400">Size:</span> {item.fileSizeMB}</div>}
+                        <div><span className="text-slate-400">Cost:</span> {item.creditsUsed} Coins</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1.5 line-clamp-1" title={item.prompt}>
+                     {item.prompt || "No prompt details"}
+                  </div>
+                </div>
+                
+                <button
+                  onClick={() => handleDownload(item)}
+                  disabled={isExpired || downloadingId === item.id}
+                  className={`w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    isExpired
+                      ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-200 dark:border-slate-700"
+                      : "bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 border border-brand-200 dark:border-brand-800/50"
+                  }`}
+                >
+                  {downloadingId === item.id ? (
+                    <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Fetching...</>
+                  ) : isExpired ? (
+                    'Expired'
+                  ) : (
+                    <><Download className="w-3.5 h-3.5" /> Download {item.resolution}</>
+                  )}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+};
 
 export default function Account({ onNavigate, onShowPricing, credits, onNewUser }: { onNavigate: (page: any) => void, onShowPricing: () => void, credits: number, onNewUser?: () => void }) {
   const { t } = useLanguage();
@@ -374,34 +572,9 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
         </AnimatePresence>
       </section>
 
-      {/* Tabs */}
-      <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-full overflow-hidden">
-        <button
-          onClick={() => setActiveTab('billing')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-bold transition-all ${
-            activeTab === 'billing' 
-              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
-              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
-        >
-          <CreditCard className="w-4 h-4" />
-          Billing & Plans
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-full text-xs font-bold transition-all ${
-            activeTab === 'history' 
-              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm" 
-              : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
-          }`}
-        >
-          <HistoryIcon className="w-4 h-4" />
-          Gallery History
-        </button>
-      </div>
-
       <AnimatePresence mode="wait">
-        {activeTab === 'billing' ? (
+        {(
+
           <motion.div 
             key="billing"
             initial={{ opacity: 0, y: 10 }}
@@ -488,28 +661,6 @@ export default function Account({ onNavigate, onShowPricing, credits, onNewUser 
                 ))}
               </div>
             </section>
-          </motion.div>
-        ) : (
-          <motion.div 
-            key="history"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="bg-white dark:bg-slate-800 p-8 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-sm text-center"
-          >
-            <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700/50 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ImageIcon className="w-10 h-10 text-slate-300 dark:text-slate-500" />
-            </div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">High-Res Delivery Center</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-6">
-              Your generated images and 4K upscaler history are being migrated here. Soon, you will be able to retrieve all your High-Res Google Cloud Storage links from this dashboard.
-            </p>
-            <button 
-              onClick={() => onNavigate('studio')}
-              className="px-6 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-xs font-bold uppercase tracking-wider hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-            >
-              Go to Workspace
-            </button>
           </motion.div>
         )}
       </AnimatePresence>

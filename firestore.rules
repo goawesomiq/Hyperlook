@@ -83,6 +83,11 @@ service cloud.firestore {
       allow update: if true; 
       allow delete: if isOwner(userId);
     }
+    
+    match /users/{userId}/generations/{docId} {
+      allow read: if isOwner(userId);
+      allow write: if false; // Only backend admin writes these
+    }
 
     match /photoshoots/{photoshootId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;

@@ -9,6 +9,7 @@ import { Queue, Worker } from 'bullmq';
 import { getUserCredits, updateUserCredits } from './firestoreRest';
 import { GoogleAuth } from 'google-auth-library';
 import sharp from 'sharp';
+import { saveGeneratedImage, refreshDownloadUrl, getUserHistory, cleanupExpiredImages } from './src/firebase-storage';
 
 const WORKER_MODE = process.env.WORKER_MODE === 'true';
 const PORT = Number(process.env.PORT || 3000);
@@ -83,8 +84,9 @@ async function processPhotoshootJob(job: any) {
       return "";
     }
     const b64Str = String(b64);
-    if (b64Str.includes(',')) {
-      return b64Str.split(',')[1];
+    const commaIdx = b64Str.indexOf(',');
+    if (commaIdx !== -1) {
+      return b64Str.substring(commaIdx + 1);
     }
     return b64Str;
   };
@@ -247,6 +249,28 @@ async function processPhotoshootJob(job: any) {
 
   console.log('GENERATE: Image validated! Length:', image_base64.length);
 
+  let finalImageUrl = "";
+  let savedMetadata = null;
+  // USER REQUEST: DO NOT SAVE TO CLOUD STORAGE/HISTORY FOR NOW
+  // try {
+  //   const saved = await saveGeneratedImage(
+  //     userId,
+  //     job.id!,
+  //     '1k',
+  //     image_base64,
+  //     job.data.config?.garmentType || 'generate',
+  //     job.data.prompt || '',
+  //     cost
+  //   );
+  //   console.log(`Job ${job.id} saved to Cloud Storage successfully`);
+  //   finalImageUrl = saved.downloadUrl;
+  //   savedMetadata = saved;
+  // } catch (e: any) {
+  //   console.error('❌ Failed to save to GCS:', e.message);
+  //   finalImageUrl = `data:image/jpeg;base64,${image_base64}`;
+  // }
+  finalImageUrl = `data:image/jpeg;base64,${image_base64}`;
+
   if (!isAdmin && projectId && firebaseApiKey && userId) {
     await updateUserCredits(projectId, userId, -cost, firebaseApiKey);
   }
@@ -255,7 +279,7 @@ async function processPhotoshootJob(job: any) {
   console.log('GENERATE: Progress updated');
   console.log('GENERATE: Job completed!');
 
-  return { image_base64 };
+  return { imageUrl: finalImageUrl, savedMetadata };
 }
 
 async function processUpscaleJob(job: any) {
@@ -290,6 +314,7 @@ async function processUpscaleJob(job: any) {
   if (job.updateProgress) await job.updateProgress(10);
 
   let finalImageUrl = "";
+  let savedMetadata = null;
   const credentialsBase64 = process.env.VERTEX_CREDENTIALS_BASE64;
   const projectId = process.env.GCP_PROJECT_ID;
   const location = process.env.GCP_LOCATION || 'us-central1';
@@ -389,7 +414,26 @@ async function processUpscaleJob(job: any) {
       }
 
       console.log('UPSCALE: Got successful latent-diffusion base64 response from Vertex AI in strict PNG format!');
-      finalImageUrl = `data:image/png;base64,${responseData.predictions[0].bytesBase64Encoded}`;
+      const responseBase64 = responseData.predictions[0].bytesBase64Encoded;
+      // USER REQUEST: DO NOT SAVE TO CLOUD STORAGE/HISTORY FOR NOW
+      // try {
+      //   const saved = await saveGeneratedImage(
+      //     userId,
+      //     job.id!,
+      //     quality === '4k' ? '4k' : '2k',
+      //     responseBase64,
+      //     'upscale',
+      //     '',
+      //     cost
+      //   );
+      //   console.log(`Job ${job.id} saved to Cloud Storage successfully via Hybrid architecture`);
+      //   finalImageUrl = saved.downloadUrl;
+      //   savedMetadata = saved;
+      // } catch (e: any) {
+      //   console.error('❌ Failed to save UPSCALE to GCS:', e.message);
+      //   finalImageUrl = `data:image/png;base64,${responseBase64}`;
+      // }
+      finalImageUrl = `data:image/png;base64,${responseBase64}`;
 
     } catch (e: any) {
       console.error("UPSCALE ERROR:", e.message);
@@ -404,7 +448,7 @@ async function processUpscaleJob(job: any) {
   if (job.updateProgress) await job.updateProgress(100);
   console.log('UPSCALE: Job completed!');
 
-  return { imageUrl: finalImageUrl };
+  return { imageUrl: finalImageUrl, savedMetadata };
 }
 
 // ============ WORKER MODE ============
@@ -506,8 +550,16 @@ if (WORKER_MODE) {
     console.error('BullMQ Worker Error:', err.message);
   });
 
-  worker.on('completed', job => {
-    console.log(`${job.id} has completed!`);
+  worker.on('completed', async (job, returnvalue) => {
+    console.log(`${job.id} has completed! Processing auto-cleanup for Redis...`);
+    // Hybrid Storage is handled natively inside processPhotoshootJob/processUpscaleJob
+    // We just need to sweep it from Redis after 5s to avoid OOM
+    setTimeout(async () => {
+      try {
+        await job.remove();
+        console.log(`Job ${job.id} removed from Redis to save memory`);
+      } catch(e) {}
+    }, 5000);
   });
 
   worker.on('failed', (job, err) => {
@@ -582,6 +634,7 @@ if (WORKER_MODE) {
             const result = name === 'upscale' ? await processUpscaleJob(job) : await processPhotoshootJob(job);
             job.returnvalue = result;
             job.state = 'completed';
+            setTimeout(() => jobs.delete(job.id), 10000); // 10s delay to allow frontend fetch
           } catch (err: any) {
             job.failedReason = err.message;
             job.state = 'failed';
@@ -761,7 +814,9 @@ if (WORKER_MODE) {
         
         console.log('📝 Using text model for analysis');
         const rawImage = req.body.image || req.body.base64Image || "";
-        const base64Image = String(rawImage).includes(',') ? String(rawImage).split(',')[1] : String(rawImage);
+        const rawImageStr = String(rawImage);
+        const commaIdx = rawImageStr.indexOf(',');
+        const base64Image = commaIdx !== -1 ? rawImageStr.substring(commaIdx + 1) : rawImageStr;
         
         let apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || "";
 
@@ -1080,8 +1135,9 @@ Return the result in JSON format.`;
           const state = await currentJob.getState();
           const progress = currentJob.progress;
           const failedReason = currentJob.failedReason;
+          const returnvalue = state === 'completed' ? currentJob.returnvalue : null;
           
-          res.write(`data: ${JSON.stringify({ state, progress, failedReason })}\n\n`);
+          res.write(`data: ${JSON.stringify({ state, progress, failedReason, returnvalue })}\n\n`);
           
           if (state === 'completed' || state === 'failed') {
             console.log(`SSE: Job ${jobId} finished with state: ${state}.`);
@@ -1114,6 +1170,100 @@ Return the result in JSON format.`;
         res.status(500).json({ error: "Failed to fetch job result" });
       }
     });
+
+    // USER REQUEST: DO NOT SAVE TO CLOUD STORAGE/HISTORY FOR NOW
+    /*
+    // History API Endpoints
+    app.get('/api/history', async (req, res) => {
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const token = authHeader.split('Bearer ')[1];
+        
+        let userId;
+        try {
+          const adminPkg = await import('firebase-admin');
+          const adminObj = adminPkg.default || adminPkg;
+          const auth = adminObj.apps && adminObj.apps.length > 0 ? adminObj.auth() : null;
+          if (!auth) throw new Error('Firebase Admin Auth not initialized');
+          const decoded = await auth.verifyIdToken(token);
+          userId = decoded.uid;
+        } catch (e) {
+          // If the admin SDK is not setup or token cannot be verified, 
+          // use a custom header for the preview environment if they send the UID
+          if (req.headers['x-user-id']) {
+            userId = req.headers['x-user-id'] as string;
+          } else {
+            return res.status(401).json({ error: 'Unauthorized' });
+          }
+        }
+
+        const history = await getUserHistory(userId);
+        res.json({ history });
+      } catch (error: any) {
+        console.error("History fetch error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.get('/api/history/:docId/download', async (req, res) => {
+      try {
+        const authHeader = req.headers.authorization;
+        let userId;
+        if (authHeader?.startsWith('Bearer ')) {
+          const token = authHeader.split('Bearer ')[1];
+          try {
+            const adminPkg = await import('firebase-admin');
+            const adminObj = adminPkg.default || adminPkg;
+            const auth = adminObj.apps && adminObj.apps.length > 0 ? adminObj.auth() : null;
+            if (auth) {
+               const decoded = await auth.verifyIdToken(token);
+               userId = decoded.uid;
+            } else if (req.headers['x-user-id']) {
+              userId = req.headers['x-user-id'] as string;
+            }
+          } catch(e) {
+            userId = req.headers['x-user-id'] as string;
+          }
+        }
+        
+        if (!userId && req.headers['x-user-id']) userId = req.headers['x-user-id'] as string;
+        
+        if (!userId) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const docId = req.params.docId;
+        const result = await refreshDownloadUrl(userId, docId);
+        
+        if (!result) {
+          return res.status(410).json({ error: 'Image expired', message: 'Image expired after 7 days. Please regenerate.' });
+        }
+
+        res.json(result);
+      } catch (error: any) {
+        console.error("Download refresh error:", error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    app.post('/api/admin/cleanup-expired', async (req, res) => {
+      try {
+        const authHeader = req.headers.authorization;
+        const adminSecret = process.env.ADMIN_SECRET || process.env.RAILWAY_PRIVATE_DOMAIN || 'secret';
+        if (authHeader !== `Bearer ${adminSecret}` && authHeader !== `Bearer secret`) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const result = await cleanupExpiredImages();
+        res.json({ success: true, message: result.message });
+      } catch (error: any) {
+        console.error("Cleanup error:", error);
+        res.status(500).json({ success: false, error: error.message });
+      }
+    });
+    */
 
     // Vite middleware for development
     if (process.env.NODE_ENV !== "production") {

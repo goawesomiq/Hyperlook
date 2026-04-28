@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Download, RefreshCcw, LayoutGrid, ArrowLeft, CheckCircle, PlusCircle, Wand2, Crown, Coins } from "lucide-react";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { useLanguage } from "../lib/LanguageContext";
 
 interface ResultGalleryProps {
@@ -32,11 +32,12 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
 
   const downloadImage = (dataUrl: string, index: number, isHighRes: boolean = false, type: '1k' | '2k' | '4k' = '1k') => {
     try {
-      if (isHighRes && !dataUrl.startsWith('data:')) {
-        // Direct download for premium if it's a URL (mocked as dataUrl for now)
+      if (!dataUrl.startsWith('data:')) {
+        // Direct download using URL
         const link = document.createElement("a");
         link.href = dataUrl;
         link.download = `photoshoot-${type}-result-${index + 1}.jpg`;
+        link.target = "_blank";
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -127,11 +128,22 @@ export default function ResultGallery({ images, onRetry, onTryDifferent, onTryNe
           const res = await fetch(`/api/result/${jobId}`);
           if (res.ok) {
             const resData = await res.json();
+            let rv = resData.returnvalue;
+            let finalSrc = '';
+            if (rv?.imageUrl) {
+               finalSrc = rv.imageUrl;
+            } else if (rv?.image_base64) {
+               const b64 = rv.image_base64.replace(/\s/g, '');
+               finalSrc = b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`;
+            } else if (typeof rv === 'string') {
+               finalSrc = rv;
+            }
+
             setHighResUrls(prev => ({
               ...prev,
               [index]: {
                 ...prev[index],
-                [quality]: resData.returnvalue?.imageUrl || resData.returnvalue
+                [quality]: finalSrc
               }
             }));
           } else {
