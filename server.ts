@@ -173,7 +173,8 @@ async function processPhotoshootJob(job: any) {
     generationConfig: {
       imageConfig: {
         aspectRatio: aspectRatio || "1:1",
-        imageSize: "1K"
+        imageSize: "1K",
+        numberOfImages: 1
       },
       temperature: 1,
       topP: 0.95,
@@ -415,25 +416,17 @@ async function processUpscaleJob(job: any) {
 
       console.log('UPSCALE: Got successful latent-diffusion base64 response from Vertex AI in strict PNG format!');
       const responseBase64 = responseData.predictions[0].bytesBase64Encoded;
-      // USER REQUEST: DO NOT SAVE TO CLOUD STORAGE/HISTORY FOR NOW
-      // try {
-      //   const saved = await saveGeneratedImage(
-      //     userId,
-      //     job.id!,
-      //     quality === '4k' ? '4k' : '2k',
-      //     responseBase64,
-      //     'upscale',
-      //     '',
-      //     cost
-      //   );
-      //   console.log(`Job ${job.id} saved to Cloud Storage successfully via Hybrid architecture`);
-      //   finalImageUrl = saved.downloadUrl;
-      //   savedMetadata = saved;
-      // } catch (e: any) {
-      //   console.error('❌ Failed to save UPSCALE to GCS:', e.message);
-      //   finalImageUrl = `data:image/png;base64,${responseBase64}`;
-      // }
-      finalImageUrl = `data:image/png;base64,${responseBase64}`;
+      
+      // Convert huge 4K PNG to high-quality JPEG to prevent payload issues via base64
+      console.log('UPSCALE: Compressing massive PNG to fast JPEG...');
+      const buffer = Buffer.from(responseBase64, 'base64');
+      const compressedBuffer = await sharp(buffer)
+        .jpeg({ quality: 90 }) // 90 is visually lossless for most cases but 5-10x smaller than 4K PNG
+        .toBuffer();
+      const compressedBase64 = compressedBuffer.toString('base64');
+      console.log(`UPSCALE: Compressed from ${Math.round(responseBase64.length/1024)}KB to ${Math.round(compressedBase64.length/1024)}KB`);
+      
+      finalImageUrl = `data:image/jpeg;base64,${compressedBase64}`;
 
     } catch (e: any) {
       console.error("UPSCALE ERROR:", e.message);

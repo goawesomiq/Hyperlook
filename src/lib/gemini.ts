@@ -316,10 +316,10 @@ export async function generatePhotoshoot(config: GenerationConfig, mainImageBase
     : prompt;
 
   console.log("Resizing main image for generation to meet lower vertex limit for speed...");
-  const resizedMainImage = await resizeBase64ForAnalysis(mainImageBase64, 768, 0.7);
+  const resizedMainImage = await resizeBase64ForAnalysis(mainImageBase64, 768, 0.6);
   
   const resizedReferenceImages = await Promise.all(
-    allReferenceImages.map(img => resizeBase64ForAnalysis(img, 768, 0.7))
+    allReferenceImages.map(img => resizeBase64ForAnalysis(img, 512, 0.5))
   );
   console.log("Resize complete.");
 
